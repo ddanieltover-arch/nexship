@@ -101,5 +101,12 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   }
   const app = await cachedAppPromise;
   await app.ready();
+  
   app.server.emit("request", req, res);
+  
+  // Keep the Vercel lambda alive until Fastify completes the response
+  await new Promise<void>((resolve) => {
+    res.once("finish", resolve);
+    res.once("error", resolve);
+  });
 }
