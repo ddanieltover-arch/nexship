@@ -45,7 +45,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="mx-auto flex max-w-7xl gap-10 px-4 py-10">
-      {/* Sidebar Navigation */}
+      {/* Mobile Navigation Tabs (Visible only on mobile) */}
+      <div className="fixed bottom-20 left-4 right-4 z-40 flex items-center gap-2 overflow-x-auto rounded-2xl border border-slate-800 bg-navy/80 p-2 backdrop-blur-xl lg:hidden no-scrollbar">
+        {links.map(({ href, label, icon: Icon }) => {
+          const active = pathname === href;
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={clsx(
+                "flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all",
+                active 
+                  ? "bg-teal text-navy" 
+                  : "text-slate-400 bg-slate-900/50"
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </Link>
+          );
+        })}
+        <div className="h-6 w-px bg-slate-800 mx-1" />
+        <Link href="/admin/settings" className="flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-400 bg-slate-900/50">
+          <Settings className="h-4 w-4" />
+        </Link>
+      </div>
+
+      {/* Sidebar Navigation (Visible only on desktop) */}
       <aside className="hidden w-64 shrink-0 lg:block">
         <div className="flex flex-col gap-8">
           <div>

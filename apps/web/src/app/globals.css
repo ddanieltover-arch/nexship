@@ -53,6 +53,14 @@ body {
     background-color: var(--surface) !important;
     backdrop-filter: blur(8px) !important;
   }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
 /* Leaflet Map Dark Theme */
