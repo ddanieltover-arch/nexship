@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --navy: #0f172a;
+  --navy-50: #1e293b;
+  --navy-900: #020617;
+  --surface: rgba(30, 41, 59, 0.5);
+  --border: #1e293b;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --accent: #06b6d4;
+  --bg-color: #0f172a;
+  --fg-color: #f8fafc;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--fg-color);
+  @apply antialiased;
+}
+
+@layer utilities {
+  /* Custom Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-700 rounded-full;
+  }
+
+  /* Legacy Class Overrides for consistent Dark Theme */
+  .text-white {
+    color: var(--text-primary) !important;
+  }
+  .text-slate-400 {
+    color: var(--text-secondary) !important;
+  }
+  .bg-navy {
+    background-color: var(--navy) !important;
+  }
+  .bg-slate-900\/50 {
+    background-color: var(--surface) !important;
+  }
+  .border-slate-800 {
+    border-color: var(--border) !important;
+  }
+  .bg-navy\/80 {
+    background-color: var(--surface) !important;
+    backdrop-filter: blur(8px) !important;
+  }
+}
+
+/* Leaflet Map Dark Theme */
+.leaflet-container {
+  background: #020617 !important;
+}
+
+.custom-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
