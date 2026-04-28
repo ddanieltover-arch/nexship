@@ -4,6 +4,7 @@ import rateLimit from "@fastify/rate-limit";
 import multipart from "@fastify/multipart";
 import fastifyStatic from "@fastify/static";
 import path from "path";
+import type { IncomingMessage, ServerResponse } from "http";
 import { AppError, errorReply } from "./lib/errors.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerShipmentRoutes } from "./routes/shipments.js";
@@ -77,10 +78,21 @@ export async function buildApp() {
     name: "Nexships Logistics API", 
     version: "1.0.0",
     status: "online",
-    message: "The API is active. Please visit http://localhost:3000 to access the Nexships Global Platform." 
+    message: "The API is active. Please visit https://nexships.com to access the Nexships Global Platform." 
   }));
 
   app.get("/health", async () => ({ ok: true }));
 
   return app;
+}
+
+let cachedAppPromise: ReturnType<typeof buildApp> | null = null;
+
+export default async function handler(req: IncomingMessage, res: ServerResponse) {
+  if (!cachedAppPromise) {
+    cachedAppPromise = buildApp();
+  }
+  const app = await cachedAppPromise;
+  await app.ready();
+  app.server.emit("request", req, res);
 }
