@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { fetchApi } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, User, Clock, AlertCircle } from "lucide-react";
 import { io, type Socket } from "socket.io-client";
@@ -82,7 +82,7 @@ export default function AdminChatPage() {
 
   async function loadThreads() {
     try {
-      const data = await fetchApi("/chat/threads");
+      const data = await apiFetch<any>("/chat/threads");
       setThreads(data.threads || []);
     } catch (err) {
       setError("Failed to load chat threads.");
@@ -94,7 +94,7 @@ export default function AdminChatPage() {
   async function loadMessages(userId: string) {
     setLoadingMessages(true);
     try {
-      const data = await fetchApi(`/chat/messages/${userId}`);
+      const data = await apiFetch<any>(`/chat/messages/${userId}`);
       setMessages(data.messages || []);
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -114,7 +114,7 @@ export default function AdminChatPage() {
     setNewMessage("");
 
     try {
-      const data = await fetchApi("/chat/messages", {
+      const data = await apiFetch("/chat/messages", {
         method: "POST",
         body: JSON.stringify({ receiverId: selectedUserId, content }),
       });
