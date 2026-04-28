@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import { SiteHeader } from "@/components/SiteHeader";
 import { MobileDock } from "@/components/MobileDock";
+import { Footer } from "@/components/Footer";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -23,7 +24,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen pb-16 font-sans md:pb-0 bg-navy text-slate-100 antialiased`}>
         <AuthProvider>
           <SiteHeader />
-          <main>{children}</main>
+          <main className="min-h-screen">{children}</main>
+          <Footer />
           <MobileDock />
         </AuthProvider>
       </body>
