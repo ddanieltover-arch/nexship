@@ -3,6 +3,7 @@ import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import multipart from "@fastify/multipart";
 import fastifyStatic from "@fastify/static";
+import { existsSync } from "fs";
 import path from "path";
 import type { IncomingMessage, ServerResponse } from "http";
 import { AppError, errorReply } from "./lib/errors.js";
@@ -31,12 +32,18 @@ export async function buildApp() {
     },
   });
 
-  // Serve uploads statically
-  await app.register(fastifyStatic, {
-    root: path.join(process.cwd(), "uploads"),
-    prefix: "/api/v1/uploads/",
-    decorateReply: false
-  });
+  // Serve uploads statically only when the directory exists.
+  // In serverless environments (e.g. Vercel), this folder may not be present.
+  const uploadsRoot = path.join(process.cwd(), "uploads");
+  if (existsSync(uploadsRoot)) {
+    await app.register(fastifyStatic, {
+      root: uploadsRoot,
+      prefix: "/api/v1/uploads/",
+      decorateReply: false,
+    });
+  } else {
+    app.log.warn({ uploadsRoot }, "Uploads directory not found; skipping static uploads plugin");
+  }
 
   app.setErrorHandler((err, _req, reply) => {
     if (err instanceof AppError) {
