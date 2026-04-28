@@ -17,7 +17,7 @@ const patchRoleSchema = z.object({
 export async function registerAdminRoutes(app: FastifyInstance) {
   app.get(
     "/admin/shipments",
-    { preHandler: [requireAuth, requireRoles("ADMIN", "STAFF")] },
+    { preHandler: [requireAuth, requireRoles(Role.ADMIN, Role.STAFF)] },
     async (req, reply) => {
       const q = listQuerySchema.safeParse(req.query);
       if (!q.success) throw new AppError("VALIDATION_ERROR", "Invalid query", 400);
@@ -44,7 +44,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
 
   app.get(
     "/admin/users",
-    { preHandler: [requireAuth, requireRoles("ADMIN")] },
+    { preHandler: [requireAuth, requireRoles(Role.ADMIN)] },
     async (_req, reply) => {
       const users = await prisma.user.findMany({
         select: {
@@ -62,7 +62,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
 
   app.patch(
     "/admin/users/:id/role",
-    { preHandler: [requireAuth, requireRoles("ADMIN")] },
+    { preHandler: [requireAuth, requireRoles(Role.ADMIN)] },
     async (req, reply) => {
       const { id } = req.params as { id: string };
       const body = patchRoleSchema.safeParse(req.body);
@@ -79,7 +79,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
 
   app.delete(
     "/admin/users/:id",
-    { preHandler: [requireAuth, requireRoles("ADMIN")] },
+    { preHandler: [requireAuth, requireRoles(Role.ADMIN)] },
     async (req, reply) => {
       const { id } = req.params as { id: string };
       if (id === req.user!.id) throw new AppError("FORBIDDEN", "Cannot delete self", 403);
@@ -90,7 +90,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
 
   app.get(
     "/admin/analytics/overview",
-    { preHandler: [requireAuth, requireRoles("ADMIN", "STAFF")] },
+    { preHandler: [requireAuth, requireRoles(Role.ADMIN, Role.STAFF)] },
     async (_req, reply) => {
       const now = new Date();
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -132,7 +132,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
 
   app.get(
     "/admin/analytics/shipments",
-    { preHandler: [requireAuth, requireRoles("ADMIN", "STAFF")] },
+    { preHandler: [requireAuth, requireRoles(Role.ADMIN, Role.STAFF)] },
     async (_req, reply) => {
       const since = new Date();
       since.setDate(since.getDate() - 30);
@@ -154,7 +154,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
 
   app.get(
     "/admin/analytics/delivery-rate",
-    { preHandler: [requireAuth, requireRoles("ADMIN", "STAFF")] },
+    { preHandler: [requireAuth, requireRoles(Role.ADMIN, Role.STAFF)] },
     async (_req, reply) => {
       const [delivered, failed] = await Promise.all([
         prisma.shipment.count({ where: { status: "DELIVERED" } }),

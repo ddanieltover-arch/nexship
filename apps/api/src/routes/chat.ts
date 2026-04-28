@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { prisma } from "@veloroute/db";
-import { requireAuth } from "../lib/auth.js";
+import { prisma, Role } from "@veloroute/db";
+import { requireAuth } from "../middleware/auth.js";
 import { emitToUser } from "../realtime.js";
 
 const sendMessageSchema = z.object({
@@ -13,7 +13,7 @@ export async function registerChatRoutes(fastify: FastifyInstance) {
   // Admin: Get all chat threads (users who have sent or received messages)
   fastify.get("/chat/threads", { preHandler: [requireAuth] }, async (request, reply) => {
     const user = request.user!;
-    if (user.role !== "ADMIN") {
+    if (user.role !== Role.ADMIN) {
       return reply.status(403).send({ success: false, message: "Forbidden" });
     }
 
@@ -22,7 +22,7 @@ export async function registerChatRoutes(fastify: FastifyInstance) {
     // and have at least one message.
     const users = await prisma.user.findMany({
       where: {
-        role: "CUSTOMER",
+        role: Role.CUSTOMER,
         OR: [
           { sentMessages: { some: {} } },
           { receivedMessages: { some: {} } }
@@ -46,9 +46,9 @@ export async function registerChatRoutes(fastify: FastifyInstance) {
 
     // If current user is not admin, they can only chat with admins.
     // If current user is admin, they can chat with the specified user.
-    if (currentUser.role !== "ADMIN") {
+    if (currentUser.role !== Role.ADMIN) {
       // Find an admin to chat with (for simplicity, we assume any admin)
-      const admin = await prisma.user.findFirst({ where: { role: "ADMIN" } });
+      const admin = await prisma.user.findFirst({ where: { role: Role.ADMIN } });
       if (!admin) return reply.send({ success: true, messages: [] });
       
       const messages = await prisma.message.findMany({
@@ -88,8 +88,8 @@ export async function registerChatRoutes(fastify: FastifyInstance) {
     let targetReceiverId = receiverId;
 
     // If a customer is sending, we should route it to an admin if they didn't specify one
-    if (currentUser.role !== "ADMIN") {
-      const admin = await prisma.user.findFirst({ where: { role: "ADMIN" } });
+    if (currentUser.role !== Role.ADMIN) {
+      const admin = await prisma.user.findFirst({ where: { role: Role.ADMIN } });
       if (admin) {
         targetReceiverId = admin.id;
       }

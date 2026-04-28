@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 
-export async function sendStatusUpdateEmail(
+export async function sendStatusEmail(
   to: string,
   trackingId: string,
   status: string

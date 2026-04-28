@@ -3,7 +3,23 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**", "node_modules/.prisma/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "node_modules/.prisma/**"],
+      "env": [
+        "DATABASE_URL",
+        "DB_PASSWORD",
+        "PORT",
+        "SEED_ADMIN_EMAIL",
+        "JWT_ACCESS_SECRET",
+        "JWT_REFRESH_SECRET",
+        "JWT_ACCESS_EXPIRES",
+        "JWT_REFRESH_EXPIRES_DAYS",
+        "SMTP_HOST",
+        "SMTP_PORT",
+        "SMTP_USER",
+        "SMTP_PASS",
+        "SMTP_FROM",
+        "SEED_ADMIN_PASSWORD"
+      ]
     },
     "dev": {
       "cache": false,

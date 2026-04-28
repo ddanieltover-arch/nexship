@@ -13,7 +13,8 @@ import {
   Settings,
   Bell,
   Search,
-  ChevronRight
+  ChevronRight,
+  MessageSquare
 } from "lucide-react";
 
 const links = [
@@ -21,6 +22,7 @@ const links = [
   { href: "/admin/shipments", label: "Shipments", icon: Package },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/admin/chat", label: "Support Chat", icon: MessageSquare },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

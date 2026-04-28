@@ -5,11 +5,12 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import clsx from "clsx";
-import { LayoutDashboard, Package, User } from "lucide-react";
+import { LayoutDashboard, Package, User, MessageCircle } from "lucide-react";
 
 const links = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/shipments", label: "Shipments", icon: Package },
+  { href: "/dashboard/chat", label: "Live Support", icon: MessageCircle },
   { href: "/login", label: "Account", icon: User },
 ];
 

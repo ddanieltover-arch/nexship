@@ -4,7 +4,8 @@ import { useEffect, useState, useRef } from "react";
 import { fetchApi } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, User, Clock, AlertCircle } from "lucide-react";
-import { useSocket } from "@/lib/socket";
+import { io, type Socket } from "socket.io-client";
+import { WS_BASE } from "@/lib/api";
 
 type ChatUser = {
   id: string;
@@ -34,9 +35,18 @@ export default function AdminChatPage() {
   const [loadingThreads, setLoadingThreads] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [error, setError] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  
-  const socket = useSocket();
+  const [socket, setSocket] = useState<Socket | null>(null);
+
+  useEffect(() => {
+    const s = io(WS_BASE, {
+      path: "/ws/socket.io",
+      transports: ["websocket", "polling"],
+    });
+    setSocket(s);
+    return () => {
+      s.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     loadThreads();

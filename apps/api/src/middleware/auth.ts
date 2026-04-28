@@ -14,7 +14,7 @@ export async function requireAuth(req: FastifyRequest, _reply: FastifyReply) {
     const payload = verifyAccessToken(token);
     const user = await prisma.user.findUnique({ where: { id: payload.sub } });
     if (!user) throw new AppError("UNAUTHORIZED", "User not found", 401);
-    req.user = { id: user.id, email: user.email, role: user.role };
+    req.user = { id: user.id, email: user.email, role: user.role as Role };
   } catch (e) {
     if (e instanceof AppError) throw e;
     throw new AppError("UNAUTHORIZED", "Invalid or expired token", 401);

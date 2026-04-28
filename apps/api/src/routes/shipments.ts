@@ -66,7 +66,7 @@ async function ensureShipmentAccess(shipmentId: string, userId: string, role: Ro
     include: { customer: true, courier: true, origin: true },
   });
   if (!shipment) throw new AppError("NOT_FOUND", "Shipment not found", 404);
-  if (role === "ADMIN" || role === "STAFF") return shipment;
+  if (role === Role.ADMIN || role === Role.STAFF) return shipment;
   if (shipment.customerId === userId || shipment.courierId === userId) return shipment;
   throw new AppError("FORBIDDEN", "Cannot access this shipment", 403);
 }
@@ -82,7 +82,7 @@ export async function registerShipmentRoutes(app: FastifyInstance) {
       const { status, page, limit, search, from, to } = q.data;
       const and: Prisma.ShipmentWhereInput[] = [];
 
-      if (req.user!.role === "CUSTOMER") {
+      if (req.user!.role === Role.CUSTOMER) {
         and.push({ customerId: req.user!.id });
       }
 
@@ -128,7 +128,7 @@ export async function registerShipmentRoutes(app: FastifyInstance) {
 
   app.post(
     "/shipments",
-    { preHandler: [requireAuth, requireRoles("STAFF", "ADMIN")] },
+    { preHandler: [requireAuth, requireRoles(Role.STAFF, Role.ADMIN)] },
     async (req, reply) => {
       const body = z.object({
         description: z.string().optional(),
@@ -248,7 +248,7 @@ export async function registerShipmentRoutes(app: FastifyInstance) {
 
   app.patch(
     "/shipments/:id",
-    { preHandler: [requireAuth, requireRoles("STAFF", "ADMIN")] },
+    { preHandler: [requireAuth, requireRoles(Role.STAFF, Role.ADMIN)] },
     async (req, reply) => {
       const { id } = req.params as { id: string };
       await ensureShipmentAccess(id, req.user!.id, req.user!.role);
@@ -274,7 +274,7 @@ export async function registerShipmentRoutes(app: FastifyInstance) {
 
   app.delete(
     "/shipments/:id",
-    { preHandler: [requireAuth, requireRoles("ADMIN")] },
+    { preHandler: [requireAuth, requireRoles(Role.ADMIN)] },
     async (req, reply) => {
       const { id } = req.params as { id: string };
       const s = await prisma.shipment.findUnique({ where: { id } });
@@ -286,7 +286,7 @@ export async function registerShipmentRoutes(app: FastifyInstance) {
 
   app.patch(
     "/shipments/:id/status",
-    { preHandler: [requireAuth, requireRoles("STAFF", "ADMIN")] },
+    { preHandler: [requireAuth, requireRoles(Role.STAFF, Role.ADMIN)] },
     async (req, reply) => {
       const { id } = req.params as { id: string };
       await ensureShipmentAccess(id, req.user!.id, req.user!.role);
@@ -366,7 +366,7 @@ export async function registerShipmentRoutes(app: FastifyInstance) {
       const shipment = await ensureShipmentAccess(id, req.user!.id, req.user!.role);
       const body = documentSchema.safeParse(req.body);
       if (!body.success) throw new AppError("VALIDATION_ERROR", "Invalid body", 400);
-      if (req.user!.role === "CUSTOMER" && shipment.customerId !== req.user!.id) {
+      if (req.user!.role === Role.CUSTOMER && shipment.customerId !== req.user!.id) {
         throw new AppError("FORBIDDEN", "Cannot add document", 403);
       }
       const doc = await prisma.document.create({
