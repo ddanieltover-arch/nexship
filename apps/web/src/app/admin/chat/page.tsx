@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { apiFetch } from "@/lib/api";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { apiFetch, WS_BASE } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, User, Clock, AlertCircle } from "lucide-react";
 import { io, type Socket } from "socket.io-client";
-import { WS_BASE } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 
 type ChatUser = {
   id: string;
@@ -28,6 +28,7 @@ type Message = {
 };
 
 export default function AdminChatPage() {
+  const { accessToken, user } = useAuth();
   const [threads, setThreads] = useState<ChatUser[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -36,27 +37,58 @@ export default function AdminChatPage() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [error, setError] = useState("");
   const [socket, setSocket] = useState<Socket | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!user?.id) return;
     const s = io(WS_BASE, {
       path: "/ws/socket.io",
+      query: { userId: user.id },
       transports: ["websocket", "polling"],
     });
     setSocket(s);
     return () => {
       s.disconnect();
     };
-  }, []);
+  }, [user?.id]);
+
+  const loadThreads = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      const data = await apiFetch<any>("/chat/threads", { token: accessToken });
+      setThreads(data.threads || []);
+    } catch (err) {
+      setError("Failed to load chat threads.");
+    } finally {
+      setLoadingThreads(false);
+    }
+  }, [accessToken]);
+
+  const loadMessages = useCallback(async (userId: string) => {
+    if (!accessToken) return;
+    setLoadingMessages(true);
+    try {
+      const data = await apiFetch<any>(`/chat/messages/${userId}`, { token: accessToken });
+      setMessages(data.messages || []);
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    } catch (err) {
+      setError("Failed to load messages.");
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, [accessToken]);
 
   useEffect(() => {
-    loadThreads();
-  }, []);
+    void loadThreads();
+  }, [loadThreads]);
 
   useEffect(() => {
     if (selectedUserId) {
-      loadMessages(selectedUserId);
+      void loadMessages(selectedUserId);
     }
-  }, [selectedUserId]);
+  }, [selectedUserId, loadMessages]);
 
   useEffect(() => {
     if (socket) {
@@ -71,40 +103,14 @@ export default function AdminChatPage() {
           }, 100);
         } else if (message.receiverId !== selectedUserId) {
           // A message from someone else. Refresh threads to push them up or show badge
-          loadThreads();
+          void loadThreads();
         }
       });
       return () => {
         socket.off("new_message");
       };
     }
-  }, [socket, selectedUserId]);
-
-  async function loadThreads() {
-    try {
-      const data = await apiFetch<any>("/chat/threads");
-      setThreads(data.threads || []);
-    } catch (err) {
-      setError("Failed to load chat threads.");
-    } finally {
-      setLoadingThreads(false);
-    }
-  }
-
-  async function loadMessages(userId: string) {
-    setLoadingMessages(true);
-    try {
-      const data = await apiFetch<any>(`/chat/messages/${userId}`);
-      setMessages(data.messages || []);
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
-    } catch (err) {
-      setError("Failed to load messages.");
-    } finally {
-      setLoadingMessages(false);
-    }
-  }
+  }, [socket, selectedUserId, loadThreads]);
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
@@ -117,6 +123,7 @@ export default function AdminChatPage() {
       const data = await apiFetch("/chat/messages", {
         method: "POST",
         body: JSON.stringify({ receiverId: selectedUserId, content }),
+        token: accessToken
       });
       // The socket will receive this message too, but we can optimistically append it if we want
       // For now, we rely on the socket emitting it back to us

@@ -25,7 +25,7 @@ export function SiteHeader() {
       <header className="border-b border-slate-800 bg-navy/80 backdrop-blur sticky top-0 z-50 transition-colors duration-300">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
           <Link href="/" className="flex items-center transition-transform hover:scale-105">
-            <img src="/logo/33.png" alt="Nexship" className="h-8 w-auto brightness-110" />
+            <img src="/logo/0.png" alt="Nexship" className="h-8 w-auto brightness-110" />
           </Link>
           
           <div className="flex items-center gap-4">
@@ -36,28 +36,15 @@ export function SiteHeader() {
                   {link.label}
                 </Link>
               ))}
-              {user ? (
+              {user && isAdmin && (
                 <>
-                  {isAdmin ? (
-                    <Link href="/admin" className="hover:text-white transition-colors font-bold text-teal">
-                      Admin Portal
-                    </Link>
-                  ) : (
-                    <Link href="/dashboard" className="hover:text-white transition-colors">
-                      My Dashboard
-                    </Link>
-                  )}
+                  <Link href="/admin" className="hover:text-white transition-colors font-bold text-teal">
+                    Admin Portal
+                  </Link>
                   <button type="button" onClick={() => void logout()} className="text-teal hover:underline transition-all">
                     Sign out
                   </button>
                 </>
-              ) : (
-                <Link
-                  href="/register"
-                  className="rounded-full bg-teal px-4 py-2 font-medium text-navy hover:bg-teal-600 transition-all shadow-lg shadow-teal/20"
-                >
-                  Get started
-                </Link>
               )}
             </nav>
 
@@ -84,7 +71,7 @@ export function SiteHeader() {
             className="fixed inset-0 z-[60] flex flex-col bg-navy p-6 md:hidden"
           >
             <div className="flex items-center justify-between">
-              <img src="/logo/33.png" alt="Nexship" className="h-8 w-auto" />
+              <img src="/logo/0.png" alt="Nexship" className="h-8 w-auto" />
               <button onClick={() => setIsOpen(false)} className="p-2 text-slate-400">
                 <X className="h-8 w-8" />
               </button>
@@ -105,15 +92,15 @@ export function SiteHeader() {
               
               <div className="h-px bg-slate-800 my-4" />
 
-              {user ? (
+              {user && isAdmin && (
                 <>
                   <Link 
-                    href={isAdmin ? "/admin" : "/dashboard"}
+                    href="/admin"
                     onClick={() => setIsOpen(false)}
                     className="flex items-center gap-4 text-2xl font-bold text-white"
                   >
                     <LayoutDashboard className="h-6 w-6 text-teal" />
-                    {isAdmin ? "Admin Portal" : "Dashboard"}
+                    Admin Portal
                   </Link>
                   <button 
                     onClick={() => { logout(); setIsOpen(false); }}
@@ -123,14 +110,6 @@ export function SiteHeader() {
                     Sign Out
                   </button>
                 </>
-              ) : (
-                <Link
-                  href="/register"
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-2xl bg-teal py-5 text-center text-xl font-bold text-navy"
-                >
-                  Get Started
-                </Link>
               )}
             </nav>
 

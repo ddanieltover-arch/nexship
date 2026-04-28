@@ -1,6 +1,9 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
+import multipart from "@fastify/multipart";
+import fastifyStatic from "@fastify/static";
+import path from "path";
 import { AppError, errorReply } from "./lib/errors.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerShipmentRoutes } from "./routes/shipments.js";
@@ -8,6 +11,9 @@ import { registerTrackRoutes } from "./routes/track.js";
 import { registerAdminRoutes } from "./routes/admin.js";
 import { registerNotificationRoutes } from "./routes/notifications.js";
 import { registerChatRoutes } from "./routes/chat.js";
+import { registerContactRoutes } from "./routes/contact.js";
+import { registerSupportRoutes } from "./routes/support.js";
+import { registerUploadRoutes } from "./routes/upload.js";
 
 export async function buildApp() {
   const app = Fastify({ logger: true });
@@ -15,6 +21,20 @@ export async function buildApp() {
   await app.register(cors, {
     origin: true,
     credentials: true,
+  });
+
+  // Register Multipart for file uploads
+  await app.register(multipart, {
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB limit
+    },
+  });
+
+  // Serve uploads statically
+  await app.register(fastifyStatic, {
+    root: path.join(process.cwd(), "uploads"),
+    prefix: "/api/v1/uploads/",
+    decorateReply: false
   });
 
   app.setErrorHandler((err, _req, reply) => {
@@ -46,6 +66,9 @@ export async function buildApp() {
       await v1.register(registerAdminRoutes);
       await v1.register(registerNotificationRoutes);
       await v1.register(registerChatRoutes);
+      await v1.register(registerContactRoutes);
+      await v1.register(registerSupportRoutes);
+      await v1.register(registerUploadRoutes);
     },
     { prefix: "/api/v1" }
   );

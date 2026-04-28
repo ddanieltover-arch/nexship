@@ -42,7 +42,7 @@ export async function registerTrackRoutes(app: FastifyInstance) {
         lat: shipment.destination.lat,
         lng: shipment.destination.lng,
       },
-      events: shipment.events.map((e) => ({
+      events: shipment.events.map((e: any) => ({
         status: e.status,
         description: e.description,
         city: e.city,

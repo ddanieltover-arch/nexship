@@ -27,7 +27,7 @@ export default function AboutPage() {
       >
         <h1 className="text-4xl font-bold text-white md:text-6xl">About Nexships</h1>
         <p className="mt-6 text-xl text-slate-400 max-w-3xl mx-auto">
-          Founded on the principle of precision, Nexships is the world's leading B2C and B2B logistics platform, 
+          Founded on the principle of precision, Nexships is the world&apos;s leading B2C and B2B logistics platform, 
           bridging the gap between global freight and local delivery with real-time intelligence.
         </p>
       </motion.section>
@@ -80,7 +80,7 @@ export default function AboutPage() {
             <h3 className="text-2xl font-bold text-white">Our Vision</h3>
           </div>
           <p className="mt-6 text-slate-400 leading-relaxed">
-            To become the digital backbone of global logistics, where every package's journey is visible, 
+            To become the digital backbone of global logistics, where every package&apos;s journey is visible, 
             every partner is verified, and every delivery is a testament to the power of human connection 
             amplified by technology.
           </p>
@@ -98,7 +98,7 @@ export default function AboutPage() {
           className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
         >
           {[
-            { title: "Transparency", desc: "Live tracking isn't just a feature; it's our promise of honesty.", icon: Globe2 },
+            { title: "Transparency", desc: "Live tracking isn&apos;t just a feature; it&apos;s our promise of honesty.", icon: Globe2 },
             { title: "Reliability", desc: "99.9% delivery success rate across 190+ countries.", icon: ShieldCheck },
             { title: "Innovation", desc: "AI-driven route optimization and real-time WebSocket architecture.", icon: Zap },
             { title: "Excellence", desc: "Recognized globally for setting the standard in logistics UX.", icon: Award },

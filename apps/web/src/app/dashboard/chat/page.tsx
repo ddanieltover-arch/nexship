@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { apiFetch, WS_BASE } from "@/lib/api";
 import { motion } from "framer-motion";
 import { Send, Clock, UserCheck, AlertCircle } from "lucide-react";
 import { io, type Socket } from "socket.io-client";
+import { useAuth } from "@/lib/auth";
 
 type Message = {
   id: string;
@@ -20,42 +21,57 @@ type Message = {
 };
 
 export default function UserChatPage() {
+  const { user, accessToken, loading: authLoading } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [user, setUser] = useState<{ id: string } | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const loadMessages = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      const data = await apiFetch<any>(`/chat/messages/admin`, { token: accessToken });
+      setMessages(data.messages || []);
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    } catch (err) {
+      setError("Failed to load messages.");
+    } finally {
+      setLoading(false);
+    }
+  }, [accessToken]);
+
   useEffect(() => {
-    // Get current user session info simply by checking who we are
-    apiFetch<any>("/auth/me")
-      .then(res => {
-        setUser(res.user);
-        loadMessages(res.user.id);
-        
-        // Initialize socket once we have the user
-        const s = io(WS_BASE, {
-          path: "/ws/socket.io",
-          query: { userId: res.user.id },
-          transports: ["websocket", "polling"],
-        });
-        setSocket(s);
-      })
-      .catch(() => {
-        setError("Please login to access chat.");
-        setLoading(false);
-      });
-      
+    let s: Socket | null = null;
+    if (authLoading) return;
+    if (!user?.id || !accessToken) {
+      setError("Please login to access chat.");
+      setLoading(false);
+      return;
+    }
+
+    void loadMessages();
+    s = io(WS_BASE, {
+      path: "/ws/socket.io",
+      query: { userId: user.id },
+      transports: ["websocket", "polling"],
+    });
+    setSocket(s);
+
     return () => {
-      socket?.disconnect();
+      s?.disconnect();
     };
-  }, []);
+  }, [authLoading, user?.id, accessToken, loadMessages]);
 
   useEffect(() => {
     if (socket && user) {
       socket.on("new_message", (message: Message) => {
+        // #region agent log
+        fetch('http://127.0.0.1:7481/ingest/ce8de074-f5d2-447d-ae80-ffb58579b81c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d0882'},body:JSON.stringify({sessionId:'2d0882',runId:'run1',hypothesisId:'H4',location:'dashboard/chat/page.tsx:socket:new_message',message:'Received socket message',data:{hasId:Boolean(message?.id),senderId:message?.senderId??null,receiverId:message?.receiverId??null},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         // Only append if it belongs to this conversation
         // For the user, any message they receive or send goes into this list
         setMessages((prev) => [...prev, message]);
@@ -69,24 +85,6 @@ export default function UserChatPage() {
     }
   }, [socket, user]);
 
-  async function loadMessages(userId: string) {
-    try {
-      // The API knows who we are. Passing 'admin' as a dummy userId if needed, 
-      // but the backend handles "admin" automatically for regular users.
-      // We pass a dummy ID or just fetch our own messages.
-      // The backend route is /chat/messages/:userId
-      const data = await apiFetch<any>(`/chat/messages/admin`);
-      setMessages(data.messages || []);
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
-    } catch (err) {
-      setError("Failed to load messages.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
     if (!newMessage.trim() || !user) return;
@@ -99,6 +97,7 @@ export default function UserChatPage() {
       await apiFetch("/chat/messages", {
         method: "POST",
         body: JSON.stringify({ receiverId: "admin", content }),
+        token: accessToken,
       });
     } catch (err) {
       setError("Failed to send message.");

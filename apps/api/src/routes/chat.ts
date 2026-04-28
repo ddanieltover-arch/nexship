@@ -4,6 +4,12 @@ import { prisma, Role } from "@veloroute/db";
 import { requireAuth } from "../middleware/auth.js";
 import { emitToUser } from "../realtime.js";
 
+function debugLog(hypothesisId: string, location: string, message: string, data: Record<string, unknown>) {
+  // #region agent log
+  void fetch('http://127.0.0.1:7481/ingest/ce8de074-f5d2-447d-ae80-ffb58579b81c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d0882'},body:JSON.stringify({sessionId:'2d0882',runId:'run2',hypothesisId,location,message,data,timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
+}
+
 const sendMessageSchema = z.object({
   receiverId: z.string(),
   content: z.string().min(1),
@@ -43,6 +49,11 @@ export async function registerChatRoutes(fastify: FastifyInstance) {
   fastify.get("/chat/messages/:userId", { preHandler: [requireAuth] }, async (request, reply) => {
     const currentUser = request.user!;
     const otherUserId = (request.params as any).userId;
+    debugLog("H5", "api/routes/chat.ts:getMessages:entry", "Chat messages endpoint called", {
+      requesterRole: currentUser.role,
+      requesterId: currentUser.id,
+      otherUserId,
+    });
 
     // If current user is not admin, they can only chat with admins.
     // If current user is admin, they can chat with the specified user.
@@ -60,6 +71,9 @@ export async function registerChatRoutes(fastify: FastifyInstance) {
         },
         orderBy: { createdAt: "asc" }
       });
+      debugLog("H5", "api/routes/chat.ts:getMessages:customerResult", "Customer messages loaded", {
+        count: messages.length,
+      });
       return reply.send({ success: true, messages });
     } else {
       // Admin fetching messages for a specific user
@@ -72,6 +86,9 @@ export async function registerChatRoutes(fastify: FastifyInstance) {
         },
         orderBy: { createdAt: "asc" }
       });
+      debugLog("H5", "api/routes/chat.ts:getMessages:adminResult", "Admin messages loaded", {
+        count: messages.length,
+      });
       return reply.send({ success: true, messages });
     }
   });
@@ -81,6 +98,7 @@ export async function registerChatRoutes(fastify: FastifyInstance) {
     const currentUser = request.user!;
     const parsed = sendMessageSchema.safeParse(request.body);
     if (!parsed.success) {
+      debugLog("H6", "api/routes/chat.ts:postMessages:invalidBody", "Chat send validation failed", {});
       return reply.status(400).send({ success: false, message: "Invalid body" });
     }
     const { receiverId, content } = parsed.data;
@@ -94,6 +112,11 @@ export async function registerChatRoutes(fastify: FastifyInstance) {
         targetReceiverId = admin.id;
       }
     }
+    debugLog("H6", "api/routes/chat.ts:postMessages:resolvedReceiver", "Resolved chat receiver", {
+      senderId: currentUser.id,
+      senderRole: currentUser.role,
+      targetReceiverId,
+    });
 
     const message = await prisma.message.create({
       data: {
@@ -113,6 +136,11 @@ export async function registerChatRoutes(fastify: FastifyInstance) {
     
     // Also emit to sender so their UI can update if they are on multiple devices
     emitToUser(currentUser.id, "new_message", message);
+    debugLog("H6", "api/routes/chat.ts:postMessages:success", "Chat message persisted and emitted", {
+      messageId: message.id,
+      senderId: message.senderId,
+      receiverId: message.receiverId,
+    });
 
     return reply.send({ success: true, message });
   });

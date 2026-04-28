@@ -59,13 +59,13 @@ export default function SustainabilityPage() {
             {
               title: "Smart Routing",
               desc: "AI-driven route optimization reduces fuel consumption and minimizes idle times during transit.",
-              icon: Recyle => <Recycle className="h-6 w-6" />
+              icon: Recycle
             }
           ].map((item, i) => (
             <div key={item.title} className="flex gap-6">
               <div className="flex-shrink-0 mt-1">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 border border-slate-800 text-teal shadow-lg shadow-teal/10">
-                  {typeof item.icon === 'function' ? item.icon() : <item.icon className="h-6 w-6" />}
+                  <item.icon className="h-6 w-6" />
                 </div>
               </div>
               <div>

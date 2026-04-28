@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, LayoutDashboard, Search, Phone } from "lucide-react";
+import { Home, Package, Search, Phone } from "lucide-react";
 import clsx from "clsx";
 
 const links = [
   { href: "/", label: "Home", icon: Home },
   { href: "/track", label: "Track", icon: Search },
-  { href: "/dashboard", label: "Ship", icon: LayoutDashboard },
+  { href: "/services", label: "Services", icon: Package },
   { href: "/contact", label: "Contact", icon: Phone },
 ];
 

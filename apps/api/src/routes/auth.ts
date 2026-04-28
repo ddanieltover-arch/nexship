@@ -5,6 +5,7 @@ import { AppError } from "../lib/errors.js";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../lib/jwt.js";
 import { hashPassword, verifyPassword } from "../lib/password.js";
 import { requireAuth } from "../middleware/auth.js";
+import { sendWelcomeEmail } from "../services/email.js";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -51,6 +52,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       },
     });
 
+    void sendWelcomeEmail(user.email, user.name || "Customer");
     const refreshToken = signRefreshToken(user.id);
     await prisma.session.create({
       data: {

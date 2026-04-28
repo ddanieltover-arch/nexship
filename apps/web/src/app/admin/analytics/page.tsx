@@ -9,10 +9,36 @@ import {
   PieChart, 
   ArrowUpRight, 
   Globe2,
-  Zap
+  Zap,
+  Activity
 } from "lucide-react";
 
+import { useAuth } from "@/lib/auth";
+import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
+import dynamic from "next/dynamic";
+
+const GlobalOperationsMap = dynamic(
+  () => import("./GlobalOperationsMap").then((mod) => mod.GlobalOperationsMap),
+  { ssr: false, loading: () => <div className="h-full w-full flex items-center justify-center text-slate-500 font-bold uppercase tracking-widest text-xs">Loading map…</div> }
+);
+
 export default function AdminAnalyticsPage() {
+  const { accessToken } = useAuth();
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    void (async () => {
+      try {
+        const res = await apiFetch("/admin/analytics/overview", { token: accessToken });
+        setStats(res);
+      } catch (err) {
+        console.error(err);
+      }
+    })();
+  }, [accessToken]);
+
   return (
     <div className="space-y-10 pb-20">
       <motion.div 
@@ -41,8 +67,8 @@ export default function AdminAnalyticsPage() {
 
       {/* Analytics Grid */}
       <div className="grid gap-8 lg:grid-cols-2">
-        {/* Performance Chart Placeholder */}
-        <div className="rounded-[2.5rem] border border-slate-800 bg-navy p-10 flex flex-col justify-between h-[400px]">
+        {/* Performance Chart */}
+        <div className="rounded-[2.5rem] border border-slate-800 bg-navy p-10 flex flex-col justify-between h-[450px]">
           <div>
              <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold text-white flex items-center gap-2">
@@ -64,10 +90,14 @@ export default function AdminAnalyticsPage() {
                />
              ))}
           </div>
+          <div className="flex justify-between mt-4 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+            <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
+            <span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
+          </div>
         </div>
 
-        {/* Efficiency Chart Placeholder */}
-        <div className="rounded-[2.5rem] border border-slate-800 bg-navy p-10 flex flex-col justify-between h-[400px]">
+        {/* Efficiency Breakdown */}
+        <div className="rounded-[2.5rem] border border-slate-800 bg-navy p-10 flex flex-col justify-between h-[450px]">
            <div>
               <h3 className="text-xl font-bold text-white flex items-center gap-2">
                 <Clock className="h-5 w-5 text-orange-500" />
@@ -98,13 +128,19 @@ export default function AdminAnalyticsPage() {
                 </div>
               ))}
            </div>
+           <div className="mt-8 rounded-2xl bg-slate-900/50 p-4 border border-slate-800">
+             <div className="flex items-center justify-between">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Avg. Success Rate</p>
+                <p className="text-xl font-bold text-white">{(stats?.deliveryRate * 100).toFixed(1)}%</p>
+             </div>
+           </div>
         </div>
       </div>
 
-      {/* Global Map Snapshot Placeholder */}
+      {/* Global Map Snapshot */}
       <div className="relative rounded-[2.5rem] border border-slate-800 bg-navy p-10 overflow-hidden">
          <div className="absolute top-0 right-0 w-1/3 h-full bg-teal/5 blur-[100px] pointer-events-none" />
-         <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
+         <div className="relative z-10 flex flex-col xl:flex-row items-center gap-10">
             <div className="flex-1">
                <h3 className="text-2xl font-bold text-white flex items-center gap-3">
                  <Globe2 className="h-7 w-7 text-teal" />
@@ -113,21 +149,71 @@ export default function AdminAnalyticsPage() {
                <p className="mt-4 text-slate-400 leading-relaxed max-w-md">
                  Real-time visualization of NexShip corridors. Active tracking across 142 countries with localized hub performance monitoring.
                </p>
-               <div className="mt-8 flex gap-4">
-                  <div className="rounded-2xl bg-slate-900 border border-slate-800 p-4">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase">Active Hubs</p>
-                    <p className="mt-1 text-xl font-bold text-white">48</p>
+               <div className="mt-8 grid grid-cols-2 gap-4">
+                  <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Active Corridors</p>
+                    <p className="mt-2 text-2xl font-bold text-white">{stats?.activeShipments || 0}</p>
+                    <div className="mt-2 h-1 w-12 bg-teal rounded-full" />
                   </div>
-                  <div className="rounded-2xl bg-slate-900 border border-slate-800 p-4">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase">Countries</p>
-                    <p className="mt-1 text-xl font-bold text-white">142</p>
+                  <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Global Hubs</p>
+                    <p className="mt-2 text-2xl font-bold text-white">48</p>
+                    <div className="mt-2 h-1 w-12 bg-blue-500 rounded-full" />
                   </div>
                </div>
+               <div className="mt-6 flex items-center gap-2 text-xs font-bold text-teal">
+                 <Activity className="h-4 w-4" />
+                 <span>Operational Status: Optimal</span>
+               </div>
             </div>
-            <div className="w-full md:w-1/2 h-64 bg-slate-900/50 rounded-3xl border border-slate-800 flex items-center justify-center text-slate-600 font-bold uppercase tracking-[0.3em]">
-               [ Interactive Map Visual ]
+            <div className="w-full xl:w-2/3 h-[500px] bg-slate-900/50 rounded-3xl border border-slate-800 overflow-hidden shadow-2xl">
+               {accessToken && <GlobalOperationsMap accessToken={accessToken} />}
             </div>
          </div>
+      </div>
+      
+      {/* Related Data: Carrier Performance */}
+      <div className="rounded-[2.5rem] border border-slate-800 bg-navy p-10">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h3 className="text-2xl font-bold text-white">Carrier Performance</h3>
+            <p className="text-slate-400 mt-1">Reliability metrics across integrated partners.</p>
+          </div>
+          <button className="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white border border-slate-800 hover:bg-slate-800 transition-all">
+            Full Report
+          </button>
+        </div>
+        
+        <div className="grid gap-6 md:grid-cols-3">
+          {[
+            { name: "NexShip Primary", reliability: 99.8, load: "High", speed: "Fast" },
+            { name: "Global Express", reliability: 98.2, load: "Medium", speed: "Ultra" },
+            { name: "SwiftNav Logistics", reliability: 95.4, load: "Full", speed: "Normal" },
+          ].map((carrier) => (
+            <div key={carrier.name} className="rounded-3xl border border-slate-800 bg-slate-900/30 p-8 hover:border-teal/30 transition-all group">
+              <p className="text-lg font-bold text-white">{carrier.name}</p>
+              <div className="mt-6 space-y-4">
+                <div className="flex justify-between text-xs font-bold uppercase tracking-widest">
+                  <span className="text-slate-500">Reliability</span>
+                  <span className="text-teal">{carrier.reliability}%</span>
+                </div>
+                <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-teal" style={{ width: `${carrier.reliability}%` }} />
+                </div>
+                <div className="flex justify-between mt-4">
+                   <div>
+                     <p className="text-[10px] text-slate-500 font-bold uppercase">Current Load</p>
+                     <p className="text-sm font-bold text-white mt-1">{carrier.load}</p>
+                   </div>
+                   <div className="text-right">
+                     <p className="text-[10px] text-slate-500 font-bold uppercase">Transit Class</p>
+                     <p className="text-sm font-bold text-white mt-1">{carrier.speed}</p>
+                   </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -87,6 +87,9 @@ export default function CreateShipmentPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    // #region agent log
+    fetch('http://127.0.0.1:7481/ingest/ce8de074-f5d2-447d-ae80-ffb58579b81c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d0882'},body:JSON.stringify({sessionId:'2d0882',runId:'run3',hypothesisId:'H4',location:'web/admin/shipments/create/page.tsx:submit:start',message:'Create shipment submit started',data:{hasAccessToken:Boolean(accessToken),tokenLength:accessToken?.length ?? 0,userRole:user?.role ?? null},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     try {
       const parseAddress = (addr: string) => {
         const parts = addr.split(",");
@@ -98,31 +101,39 @@ export default function CreateShipmentPage() {
         };
       };
 
+      const payload = {
+        shipmentType: form.shipmentType,
+        carrier: form.carrier,
+        senderName: form.senderName,
+        senderPhone: form.senderPhone,
+        senderEmail: form.senderEmail,
+        receiverName: form.receiverName,
+        receiverPhone: form.receiverPhone,
+        receiverEmail: form.receiverEmail,
+        description: form.description,
+        weightKg: form.weightKg ? parseFloat(form.weightKg) : undefined,
+        paymentMethod: form.paymentMethod,
+        departureAt: form.departureAt ? new Date(form.departureAt).toISOString() : undefined,
+        estimatedAt: form.estimatedAt ? new Date(form.estimatedAt).toISOString() : undefined,
+        origin: parseAddress(form.senderAddress),
+        destination: parseAddress(form.receiverAddress),
+      };
+
       await apiFetch("/shipments", {
         method: "POST",
         token: accessToken!,
-        body: JSON.stringify({
-          shipmentType: form.shipmentType,
-          carrier: form.carrier,
-          senderName: form.senderName,
-          senderPhone: form.senderPhone,
-          senderEmail: form.senderEmail,
-          receiverName: form.receiverName,
-          receiverPhone: form.receiverPhone,
-          receiverEmail: form.receiverEmail,
-          description: form.description,
-          weightKg: parseFloat(form.weightKg),
-          paymentMethod: form.paymentMethod,
-          departureAt: form.departureAt ? new Date(form.departureAt).toISOString() : undefined,
-          estimatedAt: form.estimatedAt ? new Date(form.estimatedAt).toISOString() : undefined,
-          origin: parseAddress(form.senderAddress),
-          destination: parseAddress(form.receiverAddress),
-        }),
+        body: JSON.stringify(payload),
       });
+      // #region agent log
+      fetch('http://127.0.0.1:7481/ingest/ce8de074-f5d2-447d-ae80-ffb58579b81c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d0882'},body:JSON.stringify({sessionId:'2d0882',runId:'run3',hypothesisId:'H5',location:'web/admin/shipments/create/page.tsx:submit:success',message:'Create shipment request succeeded',data:{},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
 
       setSuccess(true);
       setTimeout(() => router.push("/admin/shipments"), 2000);
     } catch (err) {
+      // #region agent log
+      fetch('http://127.0.0.1:7481/ingest/ce8de074-f5d2-447d-ae80-ffb58579b81c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d0882'},body:JSON.stringify({sessionId:'2d0882',runId:'run3',hypothesisId:'H5',location:'web/admin/shipments/create/page.tsx:submit:error',message:'Create shipment request failed',data:{error:err instanceof Error ? err.message : 'unknown'},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       alert(err instanceof Error ? err.message : "Creation failed");
     } finally {
       setLoading(false);

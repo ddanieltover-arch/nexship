@@ -5,7 +5,7 @@ import { AppError } from "../lib/errors.js";
 import { approximateCoords } from "../lib/geocode.js";
 import { requireAuth, requireRoles } from "../middleware/auth.js";
 import { emitToTracking } from "../realtime.js";
-import { sendStatusEmail } from "../services/email.js";
+import { sendStatusEmail, sendShipmentCreatedEmail } from "../services/email.js";
 
 const addressInput = z.object({
   street: z.string(),
@@ -14,17 +14,6 @@ const addressInput = z.object({
   country: z.string(),
   postalCode: z.string(),
   label: z.string().optional(),
-});
-
-const createShipmentSchema = z.object({
-  description: z.string().optional(),
-  weightKg: z.number().optional(),
-  dimensionsCm: z.string().optional(),
-  declaredValue: z.number().optional(),
-  notes: z.string().optional(),
-  estimatedAt: z.string().datetime().optional(),
-  origin: addressInput,
-  destination: addressInput,
 });
 
 const listQuerySchema = z.object({
@@ -39,9 +28,21 @@ const listQuerySchema = z.object({
 const patchShipmentSchema = z.object({
   description: z.string().optional(),
   weightKg: z.number().optional(),
+  shipmentType: z.string().optional(),
+  carrier: z.string().optional(),
+  paymentMethod: z.string().optional(),
+  senderName: z.string().optional(),
+  senderPhone: z.string().optional(),
+  senderEmail: z.string().optional(),
+  receiverName: z.string().optional(),
+  receiverPhone: z.string().optional(),
+  receiverEmail: z.string().optional(),
+  departureAt: z.string().datetime().nullable().optional(),
   courierId: z.string().nullable().optional(),
   notes: z.string().optional(),
   estimatedAt: z.string().datetime().nullable().optional(),
+  origin: addressInput.optional(),
+  destination: addressInput.optional(),
 });
 
 const patchStatusSchema = z.object({
@@ -132,7 +133,7 @@ export async function registerShipmentRoutes(app: FastifyInstance) {
     async (req, reply) => {
       const body = z.object({
         description: z.string().optional(),
-        weightKg: z.number().optional(),
+        weightKg: z.preprocess((val) => (val === "" || val === null ? undefined : Number(val)), z.number().optional()),
         shipmentType: z.string().optional(),
         carrier: z.string().optional(),
         paymentMethod: z.string().optional(),
@@ -183,8 +184,14 @@ export async function registerShipmentRoutes(app: FastifyInstance) {
           },
         });
 
+        const generateTrackingId = () => {
+          const digits = Math.floor(100000000 + Math.random() * 900000000).toString();
+          return `NXSP${digits}`;
+        };
+
         const created = await tx.shipment.create({
           data: {
+            trackingId: generateTrackingId(),
             customerId: req.user!.id, // Admin creates it, but we might want a real customer ID later
             description: body.data.description,
             weightKg: body.data.weightKg,
@@ -221,6 +228,9 @@ export async function registerShipmentRoutes(app: FastifyInstance) {
         return created;
       });
 
+      const creationRecipients = [shipment.senderEmail, shipment.receiverEmail];
+      void sendShipmentCreatedEmail(creationRecipients, shipment);
+
       return reply.status(201).send({ shipment });
     }
   );
@@ -255,18 +265,66 @@ export async function registerShipmentRoutes(app: FastifyInstance) {
       const body = patchShipmentSchema.safeParse(req.body);
       if (!body.success) throw new AppError("VALIDATION_ERROR", "Invalid body", 400);
 
-      const shipment = await prisma.shipment.update({
+      const existing = await prisma.shipment.findUnique({
         where: { id },
-        data: {
-          ...(body.data.description !== undefined && { description: body.data.description }),
-          ...(body.data.weightKg !== undefined && { weightKg: body.data.weightKg }),
-          ...(body.data.notes !== undefined && { notes: body.data.notes }),
-          ...(body.data.estimatedAt !== undefined && {
-            estimatedAt: body.data.estimatedAt ? new Date(body.data.estimatedAt) : null,
-          }),
-          ...(body.data.courierId !== undefined && { courierId: body.data.courierId }),
-        },
-        include: { origin: true, destination: true },
+        select: { originId: true, destinationId: true },
+      });
+      if (!existing) throw new AppError("NOT_FOUND", "Shipment not found", 404);
+
+      const shipment = await prisma.$transaction(async (tx) => {
+        if (body.data.origin) {
+          await tx.address.update({
+            where: { id: existing.originId },
+            data: {
+              street: body.data.origin.street,
+              city: body.data.origin.city,
+              state: body.data.origin.state,
+              country: body.data.origin.country,
+              postalCode: body.data.origin.postalCode,
+              label: body.data.origin.label ?? "Origin",
+            },
+          });
+        }
+
+        if (body.data.destination) {
+          await tx.address.update({
+            where: { id: existing.destinationId },
+            data: {
+              street: body.data.destination.street,
+              city: body.data.destination.city,
+              state: body.data.destination.state,
+              country: body.data.destination.country,
+              postalCode: body.data.destination.postalCode,
+              label: body.data.destination.label ?? "Destination",
+            },
+          });
+        }
+
+        return tx.shipment.update({
+          where: { id },
+          data: {
+            ...(body.data.description !== undefined && { description: body.data.description }),
+            ...(body.data.weightKg !== undefined && { weightKg: body.data.weightKg }),
+            ...(body.data.shipmentType !== undefined && { shipmentType: body.data.shipmentType }),
+            ...(body.data.carrier !== undefined && { carrier: body.data.carrier }),
+            ...(body.data.paymentMethod !== undefined && { paymentMethod: body.data.paymentMethod }),
+            ...(body.data.senderName !== undefined && { senderName: body.data.senderName }),
+            ...(body.data.senderPhone !== undefined && { senderPhone: body.data.senderPhone }),
+            ...(body.data.senderEmail !== undefined && { senderEmail: body.data.senderEmail }),
+            ...(body.data.receiverName !== undefined && { receiverName: body.data.receiverName }),
+            ...(body.data.receiverPhone !== undefined && { receiverPhone: body.data.receiverPhone }),
+            ...(body.data.receiverEmail !== undefined && { receiverEmail: body.data.receiverEmail }),
+            ...(body.data.notes !== undefined && { notes: body.data.notes }),
+            ...(body.data.departureAt !== undefined && {
+              departureAt: body.data.departureAt ? new Date(body.data.departureAt) : null,
+            }),
+            ...(body.data.estimatedAt !== undefined && {
+              estimatedAt: body.data.estimatedAt ? new Date(body.data.estimatedAt) : null,
+            }),
+            ...(body.data.courierId !== undefined && { courierId: body.data.courierId }),
+          },
+          include: { origin: true, destination: true },
+        });
       });
       return reply.send({ shipment });
     }
@@ -334,7 +392,7 @@ export async function registerShipmentRoutes(app: FastifyInstance) {
           shipmentId: id,
           type: NotificationType.IN_APP,
           subject: "Shipment update",
-          message: `Your shipment ${prev.trackingId} is now ${body.data.status.replace(/_/g, " ")}`,
+          message: `Your shipment ${prev.trackingId} is now ${(body.data.status as string).replace(/_/g, " ")}`,
         },
       });
 
@@ -352,7 +410,8 @@ export async function registerShipmentRoutes(app: FastifyInstance) {
         emitToTracking(prev.trackingId, "delivered", { timestamp: new Date().toISOString() });
       }
 
-      void sendStatusEmail(prev.customer.email, prev.trackingId, body.data.status);
+      const statusRecipients = [prev.customer.email, prev.senderEmail, prev.receiverEmail];
+      void sendStatusEmail(statusRecipients, prev.trackingId, body.data.status as string);
 
       return reply.send({ shipment, event });
     }

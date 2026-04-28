@@ -32,6 +32,7 @@ export async function registerAdminRoutes(app: FastifyInstance) {
           include: {
             origin: true,
             destination: true,
+            events: { orderBy: { timestamp: "asc" } },
             customer: { select: { id: true, email: true, name: true } },
             courier: { select: { id: true, email: true, name: true } },
           },
