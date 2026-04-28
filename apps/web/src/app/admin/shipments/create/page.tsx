@@ -30,7 +30,7 @@ export default function CreateShipmentPage() {
 
   const [form, setForm] = useState({
     shipmentType: "Air Freight",
-    carrier: "SwiftNav Logistics",
+    carrier: "NexShip Logistics",
     senderName: "",
     senderPhone: "",
     senderEmail: "",
@@ -164,7 +164,7 @@ export default function CreateShipmentPage() {
             />
             <Select 
               label="Shipment Carrier*" 
-              options={["SwiftNav Logistics", "Global Express", "Prime Carriers", "EcoShip"]} 
+              options={["NexShip Logistics"]} 
               value={form.carrier}
               onChange={(e: any) => setForm({...form, carrier: e.target.value})}
             />
