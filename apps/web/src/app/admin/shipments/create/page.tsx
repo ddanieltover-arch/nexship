@@ -22,6 +22,38 @@ import {
   CheckCircle2
 } from "lucide-react";
 
+// Move component definitions outside to prevent re-renders losing focus
+const Input = ({ label, icon: Icon, ...props }: any) => (
+  <div className="space-y-2">
+    <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
+      {Icon && <Icon className="h-3 w-3" />} {label}
+    </label>
+    <input
+      {...props}
+      className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3.5 text-sm text-white focus:border-teal outline-none transition-all placeholder:text-slate-600 shadow-inner"
+    />
+  </div>
+);
+
+const Select = ({ label, icon: Icon, options, ...props }: any) => (
+  <div className="space-y-2">
+    <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
+      {Icon && <Icon className="h-3 w-3" />} {label}
+    </label>
+    <div className="relative">
+      <select
+        {...props}
+        className="w-full appearance-none rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3.5 text-sm text-white focus:border-teal outline-none transition-all cursor-pointer"
+      >
+        {options.map((o: string) => (
+          <option key={o} value={o}>{o}</option>
+        ))}
+      </select>
+      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 pointer-events-none" />
+    </div>
+  </div>
+);
+
 export default function CreateShipmentPage() {
   const { accessToken, user } = useAuth();
   const router = useRouter();
@@ -56,7 +88,6 @@ export default function CreateShipmentPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      // Basic geocoding simulation or direct address processing
       const parseAddress = (addr: string) => {
         const parts = addr.split(",");
         return {
@@ -97,37 +128,6 @@ export default function CreateShipmentPage() {
       setLoading(false);
     }
   }
-
-  const Input = ({ label, icon: Icon, ...props }: any) => (
-    <div className="space-y-2">
-      <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
-        {Icon && <Icon className="h-3 w-3" />} {label}
-      </label>
-      <input
-        {...props}
-        className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3.5 text-sm text-white focus:border-teal outline-none transition-all placeholder:text-slate-600 shadow-inner"
-      />
-    </div>
-  );
-
-  const Select = ({ label, icon: Icon, options, ...props }: any) => (
-    <div className="space-y-2">
-      <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
-        {Icon && <Icon className="h-3 w-3" />} {label}
-      </label>
-      <div className="relative">
-        <select
-          {...props}
-          className="w-full appearance-none rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3.5 text-sm text-white focus:border-teal outline-none transition-all cursor-pointer"
-        >
-          {options.map((o: string) => (
-            <option key={o} value={o}>{o}</option>
-          ))}
-        </select>
-        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 pointer-events-none" />
-      </div>
-    </div>
-  );
 
   if (success) {
     return (
@@ -250,7 +250,7 @@ export default function CreateShipmentPage() {
                 label="Current Time & Date" 
                 type="datetime-local" 
                 value={form.currentTime}
-                readOnly
+                onChange={(e: any) => setForm({...form, currentTime: e.target.value})}
               />
               <Input 
                 label="Departure Time & Date" 
