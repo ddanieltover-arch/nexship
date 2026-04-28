@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { NotificationType, prisma, ShipmentStatus, type Role, Prisma } from "@veloroute/db";
+import { NotificationType, prisma, ShipmentStatus, Role, Prisma } from "@veloroute/db";
 import { AppError } from "../lib/errors.js";
 import { approximateCoords } from "../lib/geocode.js";
 import { requireAuth, requireRoles } from "../middleware/auth.js";

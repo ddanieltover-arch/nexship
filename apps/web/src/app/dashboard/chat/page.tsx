@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { fetchApi } from "@/lib/api";
+import { apiFetch, WS_BASE } from "@/lib/api";
 import { motion } from "framer-motion";
 import { Send, Clock, UserCheck, AlertCircle } from "lucide-react";
 import { io, type Socket } from "socket.io-client";
-import { WS_BASE } from "@/lib/api";
 
 type Message = {
   id: string;
@@ -31,7 +30,7 @@ export default function UserChatPage() {
 
   useEffect(() => {
     // Get current user session info simply by checking who we are
-    fetchApi("/auth/me")
+    apiFetch<any>("/auth/me")
       .then(res => {
         setUser(res.user);
         loadMessages(res.user.id);
@@ -76,7 +75,7 @@ export default function UserChatPage() {
       // but the backend handles "admin" automatically for regular users.
       // We pass a dummy ID or just fetch our own messages.
       // The backend route is /chat/messages/:userId
-      const data = await fetchApi(`/chat/messages/admin`);
+      const data = await apiFetch<any>(`/chat/messages/admin`);
       setMessages(data.messages || []);
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -97,7 +96,7 @@ export default function UserChatPage() {
 
     try {
       // For users, receiverId can be anything since backend forces it to an admin
-      await fetchApi("/chat/messages", {
+      await apiFetch("/chat/messages", {
         method: "POST",
         body: JSON.stringify({ receiverId: "admin", content }),
       });

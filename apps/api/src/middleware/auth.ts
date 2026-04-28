@@ -1,6 +1,5 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import type { Role } from "@veloroute/db";
-import { prisma } from "@veloroute/db";
+import { Role, prisma } from "@veloroute/db";
 import { AppError } from "../lib/errors.js";
 import { verifyAccessToken } from "../lib/jwt.js";
 
