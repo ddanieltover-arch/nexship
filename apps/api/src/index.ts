@@ -27,13 +27,19 @@ async function main() {
 
   io.on("connection", (socket) => {
     const trackingId = socket.handshake.query.trackingId as string | undefined;
-    if (!trackingId) {
-      socket.disconnect(true);
-      return;
+    const userId = socket.handshake.query.userId as string | undefined;
+    
+    if (trackingId) {
+      const room = `track:${trackingId}`;
+      void socket.join(room);
+      socket.emit("subscribed", { trackingId });
     }
-    const room = `track:${trackingId}`;
-    void socket.join(room);
-    socket.emit("subscribed", { trackingId });
+    
+    if (userId) {
+      const room = `user:${userId}`;
+      void socket.join(room);
+      socket.emit("user_subscribed", { userId });
+    }
   });
 
   await app.listen({ port: PORT, host: "0.0.0.0" });

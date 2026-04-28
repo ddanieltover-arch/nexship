@@ -169,6 +169,46 @@ export default function HomePage() {
         </div>
       </motion.div>
 
+      {/* Trusted By Marquee */}
+      <section className="mt-16 md:mt-24 overflow-hidden relative">
+        <div className="text-center mb-8">
+          <h2 className="text-xl md:text-2xl font-bold text-white">Trusted by global industry leaders</h2>
+        </div>
+        
+        {/* Left/Right Fades */}
+        <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-navy to-transparent z-10" />
+        <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-navy to-transparent z-10" />
+        
+        <div className="flex gap-6 relative max-w-[100vw]">
+          <motion.div
+            animate={{ x: ["0%", "-50%"] }}
+            transition={{
+              repeat: Infinity,
+              ease: "linear",
+              duration: 30,
+            }}
+            className="flex gap-6 whitespace-nowrap min-w-max"
+          >
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="flex gap-6">
+                {[
+                  "SAVINO DEL BENE", "allcargo group", "VAN DONGE & DE ROO", 
+                  "MONDIALE VGL", "noatum logistics", "SCAN GLOBAL LOGISTICS",
+                  "CIMC WETRANS", "BSI", "AWOT", "SOUTHEAST LOGISTICS", "WORLDEX"
+                ].map((company, idx) => (
+                  <div 
+                    key={`${i}-${idx}`} 
+                    className="flex h-20 items-center justify-center rounded-2xl border border-slate-800 bg-slate-900/40 px-8 transition-colors hover:border-teal/50 hover:bg-slate-900/80"
+                  >
+                    <span className="text-sm font-bold tracking-wider text-slate-300 uppercase">{company}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
       {/* Transport Modes */}
       <section className="mt-16 md:mt-32">
         <motion.div 

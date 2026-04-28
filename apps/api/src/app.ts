@@ -7,6 +7,7 @@ import { registerShipmentRoutes } from "./routes/shipments.js";
 import { registerTrackRoutes } from "./routes/track.js";
 import { registerAdminRoutes } from "./routes/admin.js";
 import { registerNotificationRoutes } from "./routes/notifications.js";
+import { registerChatRoutes } from "./routes/chat.js";
 
 export async function buildApp() {
   const app = Fastify({ logger: true });
@@ -44,6 +45,7 @@ export async function buildApp() {
       await v1.register(registerShipmentRoutes);
       await v1.register(registerAdminRoutes);
       await v1.register(registerNotificationRoutes);
+      await v1.register(registerChatRoutes);
     },
     { prefix: "/api/v1" }
   );
