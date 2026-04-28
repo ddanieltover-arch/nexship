@@ -95,18 +95,21 @@ export async function buildApp() {
 
 let cachedAppPromise: ReturnType<typeof buildApp> | null = null;
 
-export default async function handler(req: IncomingMessage, res: ServerResponse) {
+export default function handler(req: IncomingMessage, res: ServerResponse) {
   if (!cachedAppPromise) {
     cachedAppPromise = buildApp();
   }
-  const app = await cachedAppPromise;
-  await app.ready();
-  
-  app.server.emit("request", req, res);
-  
-  // Keep the Vercel lambda alive until Fastify completes the response
-  await new Promise<void>((resolve) => {
-    res.once("finish", resolve);
-    res.once("error", resolve);
+  cachedAppPromise.then((app) => {
+    app.ready().then(() => {
+      app.server.emit("request", req, res);
+    }).catch((err) => {
+      console.error("Fastify ready error:", err);
+      res.statusCode = 500;
+      res.end("Internal Server Error");
+    });
+  }).catch((err) => {
+    console.error("buildApp error:", err);
+    res.statusCode = 500;
+    res.end("Internal Server Error");
   });
 }
