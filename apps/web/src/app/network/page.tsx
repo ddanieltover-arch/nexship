@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Globe, MapPin, Users, Shield, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 const stats = [
   { label: "Partner Agents", value: "5,000+", icon: Users },
@@ -111,13 +112,12 @@ export default function NetworkPage() {
               Just like JCTrans, Nexships provides a verified environment where agents can collaborate, 
               share cargo leads, and ensure payment safety across borders.
             </p>
-            <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="mt-8 flex items-center gap-2 rounded-full bg-teal px-8 py-3 font-bold text-navy hover:bg-teal-600 transition-all"
+            <Link 
+              href="/contact"
+              className="mt-8 inline-flex items-center gap-2 rounded-full bg-teal px-8 py-3 font-bold text-navy hover:bg-teal-600 hover:scale-105 active:scale-95 transition-all"
             >
               Apply for Membership <ArrowRight className="h-5 w-5" />
-            </motion.button>
+            </Link>
           </div>
           <div className="grid grid-cols-2 gap-4">
             {[

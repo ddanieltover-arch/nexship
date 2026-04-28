@@ -13,3 +13,7 @@ export function getSocketIo(): IOServer | null {
 export function emitToTracking(trackingId: string, event: string, data: unknown) {
   getSocketIo()?.to(`track:${trackingId}`).emit(event, data);
 }
+
+export function emitToUser(userId: string, event: string, data: unknown) {
+  getSocketIo()?.to(`user:${userId}`).emit(event, data);
+}
