@@ -6,8 +6,13 @@
   "functions": {
     "api/index.js": {
       "includeFiles": [
+        "node_modules/.prisma/client/**",
+        "node_modules/@prisma/client/**",
+        "../node_modules/.prisma/client/**",
+        "../node_modules/@prisma/client/**",
         "../../node_modules/.prisma/client/**",
         "../../node_modules/@prisma/client/**",
+        "../packages/db/prisma/schema.prisma",
         "../../packages/db/prisma/schema.prisma"
       ]
     }
