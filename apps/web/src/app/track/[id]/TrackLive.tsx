@@ -159,9 +159,20 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
           attributionControl: false
         });
 
-        L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", {
+        const primaryTiles = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           maxZoom: 19,
-        }).addTo(mapInstance.current);
+          attribution: "&copy; OpenStreetMap contributors",
+        });
+        const fallbackTiles = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+          maxZoom: 19,
+          attribution: "&copy; OpenStreetMap &copy; CARTO",
+        });
+        primaryTiles.on("tileerror", () => {
+          if (!mapInstance.current.hasLayer(fallbackTiles)) {
+            fallbackTiles.addTo(mapInstance.current);
+          }
+        });
+        primaryTiles.addTo(mapInstance.current);
 
         L.control.zoom({ position: "bottomright" }).addTo(mapInstance.current);
         markersGroupRef.current = L.layerGroup().addTo(mapInstance.current);

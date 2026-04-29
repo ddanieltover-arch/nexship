@@ -44,6 +44,10 @@ function parseAddress(addr: string) {
   };
 }
 
+function mkid() {
+  return crypto.randomUUID().replace(/-/g, "");
+}
+
 async function supabaseApiFetch<T>(
   path: string,
   options: RequestInit & { token?: string | null }
@@ -130,16 +134,22 @@ async function supabaseApiFetch<T>(
     const destIn = body?.destination as any;
     const originPayload = originIn?.street ? originIn : parseAddress(String(originIn ?? ""));
     const destinationPayload = destIn?.street ? destIn : parseAddress(String(destIn ?? ""));
-    const { data: origin, error: oErr } = await sb.from("Address").insert(originPayload).select().single();
+    const now = new Date().toISOString();
+    const { data: origin, error: oErr } = await sb
+      .from("Address")
+      .insert({ id: mkid(), ...originPayload })
+      .select()
+      .single();
     if (oErr) throw new Error(oErr.message);
     const { data: destination, error: dErr } = await sb
       .from("Address")
-      .insert(destinationPayload)
+      .insert({ id: mkid(), ...destinationPayload })
       .select()
       .single();
     if (dErr) throw new Error(dErr.message);
     const trackingId = `NXSP${Math.floor(100000000 + Math.random() * 900000000)}`;
     const insertPayload = {
+      id: mkid(),
       trackingId,
       status: "CREATED",
       customerId: authed.id,
@@ -159,6 +169,7 @@ async function supabaseApiFetch<T>(
       departureAt: body?.departureAt ?? null,
       estimatedAt: body?.estimatedAt ?? null,
       notes: body?.notes ?? null,
+      updatedAt: now,
     };
     const { data: shipment, error: sErr } = await sb
       .from("Shipment")
@@ -167,6 +178,7 @@ async function supabaseApiFetch<T>(
       .single();
     if (sErr) throw new Error(sErr.message);
     await sb.from("TrackingEvent").insert({
+      id: mkid(),
       shipmentId: shipment.id,
       status: "CREATED",
       description: "Shipment created and scheduled",
@@ -238,6 +250,7 @@ async function supabaseApiFetch<T>(
       .single();
     if (uErr) throw new Error(uErr.message);
     const eventPayload = {
+      id: mkid(),
       shipmentId: id,
       status,
       description: body?.description ?? `Status updated to ${status}`,
@@ -295,13 +308,16 @@ async function supabaseApiFetch<T>(
   }
 
   if (p === "/contact" && method === "POST") {
+    const now = new Date().toISOString();
     const { error } = await sb.from("LogisticsNews").insert({
+      id: mkid(),
       title: `Contact: ${body?.subject ?? "General Inquiry"}`,
       content: `${body?.message ?? ""}`,
       source: String(body?.email ?? ""),
       url: null,
       imageUrl: null,
       published: false,
+      updatedAt: now,
     });
     if (error) throw new Error(error.message);
     return { ok: true } as T;
@@ -364,7 +380,7 @@ async function supabaseApiFetch<T>(
     }
     const { data: message, error } = await sb
       .from("Message")
-      .insert({ senderId: authed.id, receiverId, content: String(body?.content ?? "") })
+      .insert({ id: mkid(), senderId: authed.id, receiverId, content: String(body?.content ?? "") })
       .select()
       .single();
     if (error) throw new Error(error.message);
@@ -376,11 +392,12 @@ async function supabaseApiFetch<T>(
     const name = String(body?.name ?? "");
     const content = String(body?.content ?? "");
     if (!email || !content) throw new Error("Invalid support message");
+    const now = new Date().toISOString();
     let { data: guest } = await sb.from("User").select("id").eq("email", email).maybeSingle();
     if (!guest?.id) {
       const { data: created, error: cErr } = await sb
         .from("User")
-        .insert({ email, name, role: "CUSTOMER" })
+        .insert({ id: mkid(), email, name, role: "CUSTOMER", updatedAt: now })
         .select("id")
         .single();
       if (cErr) throw new Error(cErr.message);
@@ -394,6 +411,7 @@ async function supabaseApiFetch<T>(
       .maybeSingle();
     if (!admin?.id) throw new Error("No support admin available");
     const { error } = await sb.from("Message").insert({
+      id: mkid(),
       senderId: guest.id,
       receiverId: admin.id,
       content,
