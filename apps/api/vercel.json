@@ -1,4 +1,8 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm install --prefix=../..",
+  "buildCommand": "cd ../.. && npx turbo run build --filter=@veloroute/api",
   "rewrites": [
     {
       "source": "/(.*)",
