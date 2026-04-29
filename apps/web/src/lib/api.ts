@@ -22,6 +22,24 @@ function toRole(sbUser: SbUser): "CUSTOMER" | "STAFF" | "ADMIN" {
   return "CUSTOMER";
 }
 
+async function resolveRole(sbUser: SbUser | null): Promise<"CUSTOMER" | "STAFF" | "ADMIN"> {
+  if (!sbUser) return "CUSTOMER";
+  const fromMeta = toRole(sbUser);
+  if (fromMeta !== "CUSTOMER") return fromMeta;
+
+  const sb = getSupabaseClient();
+  const byId = await sb.from("User").select("role").eq("id", sbUser.id).maybeSingle();
+  const roleValue = String(byId.data?.role ?? "").toUpperCase();
+  if (roleValue === "ADMIN" || roleValue === "STAFF") return roleValue;
+
+  if (sbUser.email) {
+    const byEmail = await sb.from("User").select("role").eq("email", sbUser.email).maybeSingle();
+    const emailRoleValue = String(byEmail.data?.role ?? "").toUpperCase();
+    if (emailRoleValue === "ADMIN" || emailRoleValue === "STAFF") return emailRoleValue;
+  }
+  return "CUSTOMER";
+}
+
 async function getAuthedUser(token?: string | null): Promise<SbUser | null> {
   const sb = getSupabaseClient();
   if (token) {
@@ -61,7 +79,7 @@ async function supabaseApiFetch<T>(
   const url = new URL(path, "http://nexship.local");
   const p = url.pathname;
   const authed = await getAuthedUser(options.token);
-  const role = authed ? toRole(authed) : "CUSTOMER";
+  const role = await resolveRole(authed);
 
   if (p === "/admin/shipments" && method === "GET") {
     if (role !== "ADMIN" && role !== "STAFF") throw new Error("Forbidden");
@@ -99,6 +117,16 @@ async function supabaseApiFetch<T>(
       page: 1,
       limit: shipments?.length ?? 0,
     } as T;
+  }
+
+  if (p === "/admin/users" && method === "GET") {
+    if (role !== "ADMIN" && role !== "STAFF") throw new Error("Forbidden");
+    const { data, error } = await sb
+      .from("User")
+      .select("id,email,name,role,createdAt")
+      .order("createdAt", { ascending: false });
+    if (error) throw new Error(error.message);
+    return { users: data ?? [] } as T;
   }
 
   if (p === "/shipments" && method === "GET") {
