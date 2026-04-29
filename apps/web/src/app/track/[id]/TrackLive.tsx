@@ -158,7 +158,7 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
         mapInstance.current = L.map(mapRef.current!, {
           zoomControl: false,
           attributionControl: false
-        });
+        }).setView([0, 0], 2);
 
         const primaryTiles = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           maxZoom: 19,
@@ -169,7 +169,7 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
           attribution: "&copy; OpenStreetMap &copy; CARTO",
         });
         primaryTiles.on("tileerror", () => {
-          if (!mapInstance.current.hasLayer(fallbackTiles)) {
+          if (mapInstance.current && !mapInstance.current.hasLayer(fallbackTiles)) {
             fallbackTiles.addTo(mapInstance.current);
           }
         });
@@ -177,6 +177,11 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
 
         L.control.zoom({ position: "bottomright" }).addTo(mapInstance.current);
         markersGroupRef.current = L.layerGroup().addTo(mapInstance.current);
+
+        // Crucial for Next.js and hidden containers
+        setTimeout(() => {
+          mapInstance.current?.invalidateSize();
+        }, 100);
       }
 
       const map = mapInstance.current;
@@ -257,7 +262,13 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
       if (segmentPoints.length > 0) {
         const bounds = L.latLngBounds(segmentPoints);
         map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14, animate: true });
+      } else {
+        // Fallback view if no points are available
+        map.setView([20, 0], 2);
       }
+
+      // Re-invalidate size on every data update to be safe
+      map.invalidateSize();
 
       if (!liveTrailRef.current) {
         liveTrailRef.current = L.polyline([], {
