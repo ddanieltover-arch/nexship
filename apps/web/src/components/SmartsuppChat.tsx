@@ -17,21 +17,27 @@ export function SmartsuppChat() {
   const key = process.env.NEXT_PUBLIC_SMARTSUPP_KEY;
 
   useEffect(() => {
-    if (!key) return;
+    if (!key) {
+      console.warn("Smartsupp key is missing. Please set NEXT_PUBLIC_SMARTSUPP_KEY in your environment variables.");
+      return;
+    }
 
     // Initialize Smartsupp loader
     if (!window.smartsupp) {
       window._smartsupp = window._smartsupp || {};
       window._smartsupp.key = key;
-      window.smartsupp = function() {
-        (window.smartsupp.q = window.smartsupp.q || []).push(arguments);
+      
+      const o = function() {
+        (o.q = o.q || []).push(arguments);
       };
-      window.smartsupp.q = [];
+      o.q = [];
+      window.smartsupp = o;
 
       const script = document.createElement("script");
       script.type = "text/javascript";
       script.async = true;
-      script.src = `https://www.smartsuppchat.com/loader.js?`;
+      script.charset = "utf-8";
+      script.src = "https://www.smartsuppchat.com/loader.js?";
       document.head.appendChild(script);
     }
 
