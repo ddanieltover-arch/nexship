@@ -66,6 +66,21 @@ function mkid() {
   return crypto.randomUUID().replace(/-/g, "");
 }
 
+async function queueEmail(eventType: string, payload: Record<string, unknown>) {
+  const sb = getSupabaseClient();
+  try {
+    await sb.from("EmailQueue").insert({
+      id: mkid(),
+      eventType,
+      payload,
+      status: "PENDING",
+      createdAt: new Date().toISOString(),
+    });
+  } catch {
+    // Optional queue table; ignore if not provisioned yet.
+  }
+}
+
 async function supabaseApiFetch<T>(
   path: string,
   options: RequestInit & { token?: string | null }
@@ -215,6 +230,22 @@ async function supabaseApiFetch<T>(
       lat: origin.lat ?? null,
       lng: origin.lng ?? null,
     });
+    await sb.from("Notification").insert({
+      id: mkid(),
+      userId: authed.id,
+      shipmentId: shipment.id,
+      type: "IN_APP",
+      subject: "Shipment created",
+      message: `Shipment ${shipment.trackingId} has been created successfully.`,
+      read: false,
+      sentAt: new Date().toISOString(),
+    });
+    await queueEmail("shipment_created", {
+      shipmentId: shipment.id,
+      trackingId: shipment.trackingId,
+      senderEmail: shipment.senderEmail,
+      receiverEmail: shipment.receiverEmail,
+    });
     return { shipment } as T;
   }
 
@@ -290,7 +321,59 @@ async function supabaseApiFetch<T>(
     };
     const { data: event, error: eErr } = await sb.from("TrackingEvent").insert(eventPayload).select().single();
     if (eErr) throw new Error(eErr.message);
+    if (shipment.customerId) {
+      await sb.from("Notification").insert({
+        id: mkid(),
+        userId: shipment.customerId,
+        shipmentId: shipment.id,
+        type: "IN_APP",
+        subject: "Shipment update",
+        message: `Your shipment ${shipment.trackingId} is now ${status.replace(/_/g, " ")}.`,
+        read: false,
+        sentAt: new Date().toISOString(),
+      });
+    }
+    await queueEmail("shipment_status_updated", {
+      shipmentId: shipment.id,
+      trackingId: shipment.trackingId,
+      status,
+    });
     return { shipment, event } as T;
+  }
+
+  if (p === "/notifications" && method === "GET") {
+    if (!authed) throw new Error("Unauthorized");
+    const { data, error } = await sb
+      .from("Notification")
+      .select("*")
+      .eq("userId", authed.id)
+      .order("sentAt", { ascending: false })
+      .limit(100);
+    if (error) throw new Error(error.message);
+    return { items: data ?? [] } as T;
+  }
+
+  if (p.match(/^\/notifications\/[^/]+\/read$/) && method === "PATCH") {
+    if (!authed) throw new Error("Unauthorized");
+    const id = p.split("/")[2];
+    const { error } = await sb
+      .from("Notification")
+      .update({ read: true })
+      .eq("id", id)
+      .eq("userId", authed.id);
+    if (error) throw new Error(error.message);
+    return { updated: 1 } as T;
+  }
+
+  if (p === "/notifications/read-all" && method === "PATCH") {
+    if (!authed) throw new Error("Unauthorized");
+    const { error } = await sb
+      .from("Notification")
+      .update({ read: true })
+      .eq("userId", authed.id)
+      .eq("read", false);
+    if (error) throw new Error(error.message);
+    return { ok: true } as T;
   }
 
   if (p === "/admin/analytics/overview" && method === "GET") {
