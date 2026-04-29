@@ -28,9 +28,10 @@ export function SmartsuppChat() {
       window._smartsupp.key = key;
       
       const o = function() {
-        (o.q = o.q || []).push(arguments);
+        (o as any).q = (o as any).q || [];
+        (o as any).q.push(arguments);
       };
-      o.q = [];
+      (o as any).q = [];
       window.smartsupp = o;
 
       const script = document.createElement("script");

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plane, Ship, Truck, Box, Zap, ShieldCheck, ArrowRight, X } from "lucide-react";
+import { Plane, Ship, Truck, Box, Zap, ShieldCheck, ArrowRight, X, CheckCircle2 } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 const services = [
   {
@@ -66,12 +67,43 @@ const cardVariants = {
 
 export default function ServicesPage() {
   const [activeQuotationModal, setActiveQuotationModal] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    message: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate submission
-    setActiveQuotationModal(null);
-    alert("Quotation request submitted successfully! We will contact you shortly.");
+    setLoading(true);
+    setError(null);
+
+    try {
+      await apiFetch("/contact", {
+        method: "POST",
+        body: JSON.stringify({
+          ...form,
+          subject: `Service Inquiry: ${activeQuotationModal}`,
+          origin: "Service Page Inquiry", // Flag for the backend to treat it as a quote/inquiry
+          destination: activeQuotationModal,
+          cargoDetails: `Phone: ${form.phone}\n\n${form.message}`
+        }),
+      });
+      setSuccess(true);
+      setForm({ name: "", email: "", phone: "", message: "" });
+      setTimeout(() => {
+        setSuccess(false);
+        setActiveQuotationModal(null);
+      }, 3000);
+    } catch (err) {
+      setError("Failed to submit request. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -259,62 +291,97 @@ export default function ServicesPage() {
               </div>
 
               <div className="overflow-y-auto pr-2 custom-scrollbar relative z-10 flex-1">
-                <form id="quotation-form" onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Full Name</label>
-                    <input 
-                      required
-                      type="text" 
-                      placeholder="e.g. John Doe"
-                      className="w-full rounded-xl border border-slate-700 bg-slate-800/50 p-3 text-white placeholder-slate-500 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal transition-all"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Email</label>
-                      <input 
-                        required
-                        type="email" 
-                        placeholder="john@company.com"
-                        className="w-full rounded-xl border border-slate-700 bg-slate-800/50 p-3 text-white placeholder-slate-500 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Phone</label>
-                      <input 
-                        required
-                        type="tel" 
-                        placeholder="+1 234 567 8900"
-                        className="w-full rounded-xl border border-slate-700 bg-slate-800/50 p-3 text-white placeholder-slate-500 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal transition-all"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Enquiry Message</label>
-                    <textarea 
-                      required
-                      rows={4}
-                      placeholder="Please provide details about your cargo (weight, dimensions, origin, destination)..."
-                      className="w-full rounded-xl border border-slate-700 bg-slate-800/50 p-3 text-white placeholder-slate-500 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal transition-all resize-none"
-                    />
-                  </div>
-                </form>
+                <AnimatePresence mode="wait">
+                  {success ? (
+                    <motion.div
+                      key="success"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="flex flex-col items-center justify-center py-12 text-center"
+                    >
+                      <div className="rounded-full bg-teal/20 p-6 mb-6">
+                        <CheckCircle2 className="h-12 w-12 text-teal" />
+                      </div>
+                      <h3 className="text-xl font-bold text-white">Request Received</h3>
+                      <p className="mt-2 text-sm text-slate-400">Our {activeQuotationModal} experts will contact you shortly.</p>
+                    </motion.div>
+                  ) : (
+                    <form id="quotation-form" onSubmit={handleSubmit} className="space-y-4">
+                      {error && (
+                        <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-4 text-red-400 text-xs">
+                          {error}
+                        </div>
+                      )}
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Full Name</label>
+                        <input 
+                          required
+                          type="text" 
+                          placeholder="e.g. John Doe"
+                          value={form.name}
+                          onChange={(e) => setForm({ ...form, name: e.target.value })}
+                          className="w-full rounded-xl border border-slate-700 bg-slate-800/50 p-3 text-white placeholder-slate-500 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal transition-all"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Email</label>
+                          <input 
+                            required
+                            type="email" 
+                            placeholder="john@company.com"
+                            value={form.email}
+                            onChange={(e) => setForm({ ...form, email: e.target.value })}
+                            className="w-full rounded-xl border border-slate-700 bg-slate-800/50 p-3 text-white placeholder-slate-500 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal transition-all"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Phone</label>
+                          <input 
+                            required
+                            type="tel" 
+                            placeholder="+1 234 567 8900"
+                            value={form.phone}
+                            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                            className="w-full rounded-xl border border-slate-700 bg-slate-800/50 p-3 text-white placeholder-slate-500 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal transition-all"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Enquiry Message</label>
+                        <textarea 
+                          required
+                          rows={4}
+                          placeholder="Please provide details about your cargo (weight, dimensions, origin, destination)..."
+                          value={form.message}
+                          onChange={(e) => setForm({ ...form, message: e.target.value })}
+                          className="w-full rounded-xl border border-slate-700 bg-slate-800/50 p-3 text-white placeholder-slate-500 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal transition-all resize-none"
+                        />
+                      </div>
+                    </form>
+                  )}
+                </AnimatePresence>
               </div>
 
               <div className="mt-6 pt-6 border-t border-slate-800 flex justify-end relative z-10 gap-3">
-                 <button 
-                   onClick={() => setActiveQuotationModal(null)}
-                   className="rounded-xl px-6 py-2.5 text-sm font-bold text-slate-400 hover:text-white transition-colors"
-                 >
-                   Cancel
-                 </button>
-                 <button 
-                   type="submit"
-                   form="quotation-form"
-                   className="rounded-xl bg-teal px-6 py-2.5 text-sm font-bold text-navy hover:bg-teal-600 transition-colors shadow-lg shadow-teal/20"
-                 >
-                   Submit Request
-                 </button>
+                 {!success && (
+                   <>
+                     <button 
+                       onClick={() => setActiveQuotationModal(null)}
+                       className="rounded-xl px-6 py-2.5 text-sm font-bold text-slate-400 hover:text-white transition-colors"
+                     >
+                       Cancel
+                     </button>
+                     <button 
+                       type="submit"
+                       form="quotation-form"
+                       disabled={loading}
+                       className="rounded-xl bg-teal px-6 py-2.5 text-sm font-bold text-navy hover:bg-teal-600 transition-colors shadow-lg shadow-teal/20 disabled:opacity-50"
+                     >
+                       {loading ? "Transmitting..." : "Submit Request"}
+                     </button>
+                   </>
+                 )}
               </div>
             </motion.div>
           </div>
