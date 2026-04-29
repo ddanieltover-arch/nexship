@@ -67,17 +67,15 @@ function mkid() {
 }
 
 async function queueEmail(eventType: string, payload: Record<string, unknown>) {
-  const sb = getSupabaseClient();
   try {
-    await sb.from("EmailQueue").insert({
-      id: mkid(),
-      eventType,
-      payload,
-      status: "PENDING",
-      createdAt: new Date().toISOString(),
+    // Call our internal Next.js API route to send the email securely on the server
+    await fetch("/api/send-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ eventType, payload }),
     });
-  } catch {
-    // Optional queue table; ignore if not provisioned yet.
+  } catch (error) {
+    console.error("Failed to trigger email:", error);
   }
 }
 
@@ -267,6 +265,7 @@ async function supabaseApiFetch<T>(
       trackingId: shipment.trackingId,
       senderEmail: shipment.senderEmail,
       receiverEmail: shipment.receiverEmail,
+      receiverName: shipment.receiverName,
     });
     return { shipment } as T;
   }
