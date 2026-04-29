@@ -368,7 +368,7 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase?.removeChannel(channel);
     };
   }, [data?.id]);
 

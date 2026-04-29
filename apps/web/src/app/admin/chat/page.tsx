@@ -36,36 +36,7 @@ export default function AdminChatPage() {
   const [loadingThreads, setLoadingThreads] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [error, setError] = useState("");
-  useEffect(() => {
-    if (!user?.id || !supabase) return;
-    
-    const channel = supabase
-      .channel('admin_messages')
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "Message" },
-        (payload) => {
-          const message = payload.new as Message;
-          if (
-            selectedUserId &&
-            (message.senderId === selectedUserId || message.receiverId === selectedUserId)
-          ) {
-            setMessages((prev) => [...prev, message]);
-            setTimeout(() => {
-              messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-            }, 100);
-          } else if (message.receiverId !== selectedUserId) {
-            void loadThreads();
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id, selectedUserId, loadThreads]);
-
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const loadThreads = useCallback(async () => {
     if (!accessToken) return;
     try {
@@ -93,6 +64,36 @@ export default function AdminChatPage() {
       setLoadingMessages(false);
     }
   }, [accessToken]);
+
+  useEffect(() => {
+    if (!user?.id || !supabase) return;
+    
+    const channel = supabase
+      .channel('admin_messages')
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "Message" },
+        (payload) => {
+          const message = payload.new as Message;
+          if (
+            selectedUserId &&
+            (message.senderId === selectedUserId || message.receiverId === selectedUserId)
+          ) {
+            setMessages((prev) => [...prev, message]);
+            setTimeout(() => {
+              messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            }, 100);
+          } else if (message.receiverId !== selectedUserId) {
+            void loadThreads();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase?.removeChannel(channel);
+    };
+  }, [user?.id, selectedUserId, loadThreads]);
 
   useEffect(() => {
     void loadThreads();
