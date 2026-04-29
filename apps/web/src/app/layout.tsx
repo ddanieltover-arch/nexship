@@ -5,7 +5,7 @@ import { AuthProvider } from "@/lib/auth";
 import { SiteHeader } from "@/components/SiteHeader";
 import { MobileDock } from "@/components/MobileDock";
 import { Footer } from "@/components/Footer";
-import { LiveSupport } from "@/components/LiveSupport";
+import { SmartsuppChat } from "@/components/SmartsuppChat";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -31,7 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className="min-h-screen">{children}</main>
           <Footer />
           <MobileDock />
-          <LiveSupport />
+          <SmartsuppChat />
         </AuthProvider>
       </body>
     </html>
