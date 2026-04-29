@@ -54,12 +54,14 @@ export default function UserChatPage() {
     }
 
     void loadMessages();
-    s = io(WS_BASE, {
-      path: "/ws/socket.io",
-      query: { userId: user.id },
-      transports: ["websocket", "polling"],
-    });
-    setSocket(s);
+    if (WS_BASE) {
+      s = io(WS_BASE, {
+        path: "/ws/socket.io",
+        query: { userId: user.id },
+        transports: ["websocket", "polling"],
+      });
+      setSocket(s);
+    }
 
     return () => {
       s?.disconnect();

@@ -330,6 +330,7 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
 
   useEffect(() => {
     let socket: Socket | null = null;
+    if (!WS_BASE) return () => {};
     try {
       socket = io(WS_BASE, {
         path: "/ws/socket.io",

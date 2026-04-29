@@ -9,7 +9,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { apiFetch } from "./api";
+import type { Session, User as SupabaseUser } from "@supabase/supabase-js";
+import { getSupabaseClient } from "./supabase";
 
 type User = {
   id: string;
@@ -52,6 +53,31 @@ function loadStored(): Pick<AuthState, "accessToken" | "refreshToken" | "user"> 
   }
 }
 
+function roleFromSupabaseUser(sbUser: SupabaseUser): User["role"] {
+  const appMetaRole = String(sbUser.app_metadata?.role ?? "").toUpperCase();
+  const userMetaRole = String(sbUser.user_metadata?.role ?? "").toUpperCase();
+  const role = appMetaRole || userMetaRole;
+  if (role === "ADMIN" || role === "STAFF") return role;
+  return "CUSTOMER";
+}
+
+function mapSupabaseUser(sbUser: SupabaseUser): User {
+  return {
+    id: sbUser.id,
+    email: sbUser.email ?? "",
+    name: (sbUser.user_metadata?.name as string | undefined) ?? null,
+    role: roleFromSupabaseUser(sbUser),
+  };
+}
+
+function mapSession(session: Session) {
+  return {
+    user: mapSupabaseUser(session.user),
+    accessToken: session.access_token ?? null,
+    refreshToken: session.refresh_token ?? null,
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -75,109 +101,95 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
-    void (async () => {
-      const s = loadStored();
-      if (!s?.accessToken || !s.refreshToken || !s.user) {
-        if (mounted) setLoading(false);
-        return;
+    let authSub: { subscription: { unsubscribe: () => void } } | null = null;
+    let sb: ReturnType<typeof getSupabaseClient>;
+    try {
+      sb = getSupabaseClient();
+    } catch {
+      if (mounted) {
+        persist(null, null, null);
+        setLoading(false);
       }
-
-      // #region agent log
-      fetch('http://127.0.0.1:7481/ingest/ce8de074-f5d2-447d-ae80-ffb58579b81c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d0882'},body:JSON.stringify({sessionId:'2d0882',runId:'run4',hypothesisId:'H7',location:'web/lib/auth.tsx:bootstrap:start',message:'Auth bootstrap with stored session',data:{hasStoredUser:Boolean(s.user),accessLen:s.accessToken.length,refreshLen:s.refreshToken.length},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
-
-      try {
-        const me = await apiFetch<{ user: User }>("/auth/me", { token: s.accessToken });
-        if (!mounted) return;
-        persist(me.user, s.accessToken, s.refreshToken);
-        // #region agent log
-        fetch('http://127.0.0.1:7481/ingest/ce8de074-f5d2-447d-ae80-ffb58579b81c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d0882'},body:JSON.stringify({sessionId:'2d0882',runId:'run4',hypothesisId:'H7',location:'web/lib/auth.tsx:bootstrap:meOk',message:'Stored access token is valid',data:{role:me.user.role},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
-      } catch {
-        // #region agent log
-        fetch('http://127.0.0.1:7481/ingest/ce8de074-f5d2-447d-ae80-ffb58579b81c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d0882'},body:JSON.stringify({sessionId:'2d0882',runId:'run4',hypothesisId:'H8',location:'web/lib/auth.tsx:bootstrap:meFail',message:'Stored access token rejected, trying refresh',data:{},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
-        try {
-          const refreshed = await apiFetch<{ accessToken: string; refreshToken: string }>("/auth/refresh", {
-            method: "POST",
-            body: JSON.stringify({ refreshToken: s.refreshToken }),
-          });
-          const me = await apiFetch<{ user: User }>("/auth/me", { token: refreshed.accessToken });
-          if (!mounted) return;
-          persist(me.user, refreshed.accessToken, refreshed.refreshToken);
-          // #region agent log
-          fetch('http://127.0.0.1:7481/ingest/ce8de074-f5d2-447d-ae80-ffb58579b81c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d0882'},body:JSON.stringify({sessionId:'2d0882',runId:'run4',hypothesisId:'H8',location:'web/lib/auth.tsx:bootstrap:refreshOk',message:'Refresh succeeded and user restored',data:{role:me.user.role},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
-        } catch {
-          if (!mounted) return;
-          persist(null, null, null);
-          // #region agent log
-          fetch('http://127.0.0.1:7481/ingest/ce8de074-f5d2-447d-ae80-ffb58579b81c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d0882'},body:JSON.stringify({sessionId:'2d0882',runId:'run4',hypothesisId:'H8',location:'web/lib/auth.tsx:bootstrap:refreshFail',message:'Refresh failed, cleared local session',data:{},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
-        }
-      } finally {
-        if (mounted) setLoading(false);
+      return () => {
+        mounted = false;
+      };
+    }
+    void sb.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      const session = data.session;
+      if (session) {
+        const mapped = mapSession(session);
+        persist(mapped.user, mapped.accessToken, mapped.refreshToken);
+      } else {
+        persist(null, null, null);
       }
-    })();
+      setLoading(false);
+    });
+
+    const subData = sb.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
+      if (session) {
+        const mapped = mapSession(session);
+        persist(mapped.user, mapped.accessToken, mapped.refreshToken);
+      } else {
+        persist(null, null, null);
+      }
+    });
+    authSub = subData.data;
+
     return () => {
       mounted = false;
+      authSub?.subscription.unsubscribe();
     };
   }, [persist]);
 
   const login = useCallback(
     async (email: string, password: string) => {
-      const res = await apiFetch<{
-        user: User;
-        accessToken: string;
-        refreshToken: string;
-      }>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
-      persist(res.user, res.accessToken, res.refreshToken);
-      return res.user;
+      const { data, error } = await getSupabaseClient().auth.signInWithPassword({ email, password });
+      if (error) throw new Error(error.message);
+      if (!data.session) throw new Error("No session returned from Supabase.");
+      const mapped = mapSession(data.session);
+      persist(mapped.user, mapped.accessToken, mapped.refreshToken);
+      return mapped.user;
     },
     [persist]
   );
 
   const register = useCallback(
     async (input: { email: string; password: string; name: string; phone?: string }) => {
-      const res = await apiFetch<{
-        user: User;
-        accessToken: string;
-        refreshToken: string;
-      }>("/auth/register", { method: "POST", body: JSON.stringify(input) });
-      persist(res.user, res.accessToken, res.refreshToken);
+      const { data, error } = await getSupabaseClient().auth.signUp({
+        email: input.email,
+        password: input.password,
+        options: {
+          data: {
+            name: input.name,
+            phone: input.phone,
+            role: "CUSTOMER",
+          },
+        },
+      });
+      if (error) throw new Error(error.message);
+      if (data.session) {
+        const mapped = mapSession(data.session);
+        persist(mapped.user, mapped.accessToken, mapped.refreshToken);
+      }
     },
     [persist]
   );
 
   const refresh = useCallback(async () => {
-    const rt = refreshToken ?? loadStored()?.refreshToken;
-    if (!rt) return;
-    const res = await apiFetch<{ accessToken: string; refreshToken: string }>("/auth/refresh", {
-      method: "POST",
-      body: JSON.stringify({ refreshToken: rt }),
-    });
-    setAccessToken(res.accessToken);
-    setRefreshToken(res.refreshToken);
-    const u = user ?? loadStored()?.user;
-    if (u) persist(u, res.accessToken, res.refreshToken);
-  }, [persist, refreshToken, user]);
+    const { data, error } = await getSupabaseClient().auth.refreshSession();
+    if (error) throw new Error(error.message);
+    if (data.session) {
+      const mapped = mapSession(data.session);
+      persist(mapped.user, mapped.accessToken, mapped.refreshToken);
+    }
+  }, [persist]);
 
   const logout = useCallback(async () => {
-    const at = accessToken;
-    const rt = refreshToken;
-    try {
-      if (at) {
-        await apiFetch("/auth/logout", {
-          method: "POST",
-          token: at,
-          body: JSON.stringify(rt ? { refreshToken: rt } : {}),
-        });
-      }
-    } catch {
-      /* ignore */
-    }
+    await getSupabaseClient().auth.signOut();
     persist(null, null, null);
-  }, [accessToken, refreshToken, persist]);
+  }, [persist]);
 
   const value = useMemo(
     () => ({

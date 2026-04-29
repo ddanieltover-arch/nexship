@@ -40,7 +40,7 @@ export default function AdminChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !WS_BASE) return;
     const s = io(WS_BASE, {
       path: "/ws/socket.io",
       query: { userId: user.id },
