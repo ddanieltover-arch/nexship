@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, useMemo } from "react";
-import { io, type Socket } from "socket.io-client";
 import { MapPin, Navigation, Truck, CheckCircle2, Clock, X, Package } from "lucide-react";
-import { WS_BASE, apiFetch } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 
 // We import Leaflet and CSS only on the client
@@ -20,6 +20,7 @@ type TrackEvent = {
 };
 
 type TrackPayload = {
+  id: string;
   trackingId: string;
   status: string;
   estimatedAt: string | null;
@@ -340,34 +341,36 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
   }, [previousAndCurrentPoints, leafletReady]);
 
   useEffect(() => {
-    let socket: Socket | null = null;
-    if (!WS_BASE) return () => {};
-    try {
-      socket = io(WS_BASE, {
-        path: "/ws/socket.io",
-        query: { trackingId },
-        transports: ["websocket", "polling"],
-      });
-      socket.on("location_update", (payload: any) => {
-        setData((prev) => {
-          if (!prev) return prev;
-          const ev: TrackEvent = {
-            status: payload.status,
-            description: "Live operational update",
-            city: payload.city || null,
-            country: payload.country || null,
-            lat: payload.lat,
-            lng: payload.lng,
-            timestamp: payload.timestamp,
-          };
-          return { ...prev, status: payload.status, events: [...prev.events, ev] };
-        });
-      });
-    } catch { /* ignored */ }
+    if (!data || !data.id || !supabase) return () => {};
+    
+    const channel = supabase
+      .channel(`tracking_${data.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "TrackingEvent", filter: `shipmentId=eq.${data.id}` },
+        (payload) => {
+          const newEvent = payload.new;
+          setData((prev) => {
+            if (!prev) return prev;
+            const ev: TrackEvent = {
+              status: newEvent.status,
+              description: newEvent.description || "Live operational update",
+              city: newEvent.city || null,
+              country: newEvent.country || null,
+              lat: newEvent.lat,
+              lng: newEvent.lng,
+              timestamp: newEvent.timestamp,
+            };
+            return { ...prev, status: newEvent.status, events: [...prev.events, ev] };
+          });
+        }
+      )
+      .subscribe();
+
     return () => {
-      socket?.disconnect();
+      supabase.removeChannel(channel);
     };
-  }, [trackingId]);
+  }, [data?.id]);
 
   if (error) return (
     <div className="flex flex-col items-center justify-center py-20 px-4">

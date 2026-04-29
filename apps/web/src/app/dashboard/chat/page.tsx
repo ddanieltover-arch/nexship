@@ -4,8 +4,8 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { apiFetch, WS_BASE } from "@/lib/api";
 import { motion } from "framer-motion";
 import { Send, Clock, UserCheck, AlertCircle } from "lucide-react";
-import { io, type Socket } from "socket.io-client";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 
 type Message = {
   id: string;
@@ -45,47 +45,40 @@ export default function UserChatPage() {
   }, [accessToken]);
 
   useEffect(() => {
-    let s: Socket | null = null;
     if (authLoading) return;
-    if (!user?.id || !accessToken) {
-      setError("Please login to access chat.");
-      setLoading(false);
+    if (!user?.id || !accessToken || !supabase) {
+      if (!authLoading) {
+        setError("Please login to access chat.");
+        setLoading(false);
+      }
       return;
     }
 
     void loadMessages();
-    if (WS_BASE) {
-      s = io(WS_BASE, {
-        path: "/ws/socket.io",
-        query: { userId: user.id },
-        transports: ["websocket", "polling"],
-      });
-      setSocket(s);
-    }
+    
+    const channel = supabase
+      .channel('user_messages')
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "Message" },
+        (payload) => {
+          const message = payload.new as Message;
+          if (message.senderId === user.id || message.receiverId === user.id) {
+            setMessages((prev) => [...prev, message]);
+            setTimeout(() => {
+              messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            }, 100);
+          }
+        }
+      )
+      .subscribe();
 
     return () => {
-      s?.disconnect();
+      supabase.removeChannel(channel);
     };
   }, [authLoading, user?.id, accessToken, loadMessages]);
 
-  useEffect(() => {
-    if (socket && user) {
-      socket.on("new_message", (message: Message) => {
-        // #region agent log
-        fetch('http://127.0.0.1:7481/ingest/ce8de074-f5d2-447d-ae80-ffb58579b81c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d0882'},body:JSON.stringify({sessionId:'2d0882',runId:'run1',hypothesisId:'H4',location:'dashboard/chat/page.tsx:socket:new_message',message:'Received socket message',data:{hasId:Boolean(message?.id),senderId:message?.senderId??null,receiverId:message?.receiverId??null},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
-        // Only append if it belongs to this conversation
-        // For the user, any message they receive or send goes into this list
-        setMessages((prev) => [...prev, message]);
-        setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        }, 100);
-      });
-      return () => {
-        socket.off("new_message");
-      };
-    }
-  }, [socket, user]);
+  // Socket logic handled in the useEffect above
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();

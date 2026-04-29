@@ -4,8 +4,8 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { apiFetch, WS_BASE } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, User, Clock, AlertCircle } from "lucide-react";
-import { io, type Socket } from "socket.io-client";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 
 type ChatUser = {
   id: string;
@@ -36,21 +36,35 @@ export default function AdminChatPage() {
   const [loadingThreads, setLoadingThreads] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [error, setError] = useState("");
-  const [socket, setSocket] = useState<Socket | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
-    if (!user?.id || !WS_BASE) return;
-    const s = io(WS_BASE, {
-      path: "/ws/socket.io",
-      query: { userId: user.id },
-      transports: ["websocket", "polling"],
-    });
-    setSocket(s);
+    if (!user?.id || !supabase) return;
+    
+    const channel = supabase
+      .channel('admin_messages')
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "Message" },
+        (payload) => {
+          const message = payload.new as Message;
+          if (
+            selectedUserId &&
+            (message.senderId === selectedUserId || message.receiverId === selectedUserId)
+          ) {
+            setMessages((prev) => [...prev, message]);
+            setTimeout(() => {
+              messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            }, 100);
+          } else if (message.receiverId !== selectedUserId) {
+            void loadThreads();
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
-      s.disconnect();
+      supabase.removeChannel(channel);
     };
-  }, [user?.id]);
+  }, [user?.id, selectedUserId, loadThreads]);
 
   const loadThreads = useCallback(async () => {
     if (!accessToken) return;
@@ -90,27 +104,7 @@ export default function AdminChatPage() {
     }
   }, [selectedUserId, loadMessages]);
 
-  useEffect(() => {
-    if (socket) {
-      socket.on("new_message", (message: Message) => {
-        if (
-          selectedUserId &&
-          (message.senderId === selectedUserId || message.receiverId === selectedUserId)
-        ) {
-          setMessages((prev) => [...prev, message]);
-          setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-          }, 100);
-        } else if (message.receiverId !== selectedUserId) {
-          // A message from someone else. Refresh threads to push them up or show badge
-          void loadThreads();
-        }
-      });
-      return () => {
-        socket.off("new_message");
-      };
-    }
-  }, [socket, selectedUserId, loadThreads]);
+  // socket logic merged into single useEffect above
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();

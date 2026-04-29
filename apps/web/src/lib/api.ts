@@ -178,6 +178,28 @@ async function supabaseApiFetch<T>(
     const originPayload = originIn?.street ? originIn : parseAddress(String(originIn ?? ""));
     const destinationPayload = destIn?.street ? destIn : parseAddress(String(destIn ?? ""));
     const now = new Date().toISOString();
+
+    let targetCustomerId = authed.id;
+    if (body?.receiverEmail) {
+      let { data: customerUser } = await sb.from("User").select("id").eq("email", body.receiverEmail).maybeSingle();
+      if (!customerUser?.id) {
+        const { data: createdUser, error: cErr } = await sb
+          .from("User")
+          .insert({
+            id: mkid(),
+            email: body.receiverEmail,
+            name: body.receiverName ?? null,
+            phone: body.receiverPhone ?? null,
+            role: "CUSTOMER",
+            updatedAt: now,
+          })
+          .select("id")
+          .single();
+        if (cErr) throw new Error(cErr.message);
+        customerUser = createdUser;
+      }
+      targetCustomerId = customerUser.id;
+    }
     const { data: origin, error: oErr } = await sb
       .from("Address")
       .insert({ id: mkid(), ...originPayload })
@@ -195,7 +217,7 @@ async function supabaseApiFetch<T>(
       id: mkid(),
       trackingId,
       status: "CREATED",
-      customerId: authed.id,
+      customerId: targetCustomerId,
       originId: origin.id,
       destinationId: destination.id,
       description: body?.description ?? null,
@@ -409,6 +431,7 @@ async function supabaseApiFetch<T>(
       sb.from("TrackingEvent").select("*").eq("shipmentId", shipment.id).order("timestamp", { ascending: true }),
     ]);
     return {
+      id: shipment.id,
       trackingId: shipment.trackingId,
       status: shipment.status,
       estimatedAt: shipment.estimatedAt,
