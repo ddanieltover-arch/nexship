@@ -1,4 +1,5 @@
 import { getSupabaseClient } from "./supabase";
+import { geocodeAddress } from "./geocode";
 
 export const API_BASE = "";
 export const WS_BASE = process.env.NEXT_PUBLIC_WS_URL?.trim() || "";
@@ -210,6 +211,23 @@ async function supabaseApiFetch<T>(
       .select()
       .single();
     if (dErr) throw new Error(dErr.message);
+
+    // Auto-geocode origin and destination for map display
+    const originGeoQuery = [origin.city, origin.country].filter(Boolean).join(", ");
+    const destGeoQuery = [destination.city, destination.country].filter(Boolean).join(", ");
+    const [originCoords, destCoords] = await Promise.all([
+      originGeoQuery ? geocodeAddress(originGeoQuery) : Promise.resolve(null),
+      destGeoQuery ? geocodeAddress(destGeoQuery) : Promise.resolve(null),
+    ]);
+
+    // Update addresses with coordinates if geocoding succeeded
+    if (originCoords) {
+      await sb.from("Address").update({ lat: originCoords.lat, lng: originCoords.lng }).eq("id", origin.id);
+    }
+    if (destCoords) {
+      await sb.from("Address").update({ lat: destCoords.lat, lng: destCoords.lng }).eq("id", destination.id);
+    }
+
     const trackingId = `NXSP${Math.floor(100000000 + Math.random() * 900000000)}`;
     const insertPayload = {
       id: mkid(),
@@ -247,8 +265,8 @@ async function supabaseApiFetch<T>(
       description: "Shipment created and scheduled",
       city: origin.city ?? null,
       country: origin.country ?? null,
-      lat: origin.lat ?? null,
-      lng: origin.lng ?? null,
+      lat: originCoords?.lat ?? null,
+      lng: originCoords?.lng ?? null,
     });
     await sb.from("Notification").insert({
       id: mkid(),
@@ -330,15 +348,33 @@ async function supabaseApiFetch<T>(
       .select()
       .single();
     if (uErr) throw new Error(uErr.message);
+
+    // Auto-geocode the city/address if lat/lng are not provided
+    let lat = body?.lat ?? null;
+    let lng = body?.lng ?? null;
+    const city = body?.city ?? null;
+    const country = body?.country ?? null;
+
+    if (lat == null || lng == null) {
+      const geoQuery = [city, country].filter(Boolean).join(", ");
+      if (geoQuery) {
+        const coords = await geocodeAddress(geoQuery);
+        if (coords) {
+          lat = coords.lat;
+          lng = coords.lng;
+        }
+      }
+    }
+
     const eventPayload = {
       id: mkid(),
       shipmentId: id,
       status,
       description: body?.description ?? `Status updated to ${status}`,
-      city: body?.city ?? null,
-      country: body?.country ?? null,
-      lat: body?.lat ?? null,
-      lng: body?.lng ?? null,
+      city,
+      country,
+      lat,
+      lng,
       timestamp: body?.timestamp ?? new Date().toISOString(),
     };
     const { data: event, error: eErr } = await sb.from("TrackingEvent").insert(eventPayload).select().single();
