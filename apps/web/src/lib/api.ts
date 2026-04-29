@@ -447,8 +447,8 @@ async function supabaseApiFetch<T>(
     const now = new Date().toISOString();
     const { error } = await sb.from("LogisticsNews").insert({
       id: mkid(),
-      title: `Contact: ${body?.subject ?? "General Inquiry"}`,
-      content: `${body?.message ?? ""}`,
+      title: body?.origin ? `Quote: ${body.origin} to ${body.destination}` : `Contact: ${body?.subject ?? "General Inquiry"}`,
+      content: `${body?.message ?? body?.cargoDetails ?? ""}`,
       source: String(body?.email ?? ""),
       url: null,
       imageUrl: null,
@@ -456,6 +456,30 @@ async function supabaseApiFetch<T>(
       updatedAt: now,
     });
     if (error) throw new Error(error.message);
+
+    // Trigger emails
+    if (body) {
+      if (body.origin) {
+        // It's a quote request (from QuoteModal)
+        await queueEmail("quote_requested", {
+          name: String(body.name ?? "User"),
+          email: String(body.email ?? ""),
+          company: String(body.company ?? ""),
+          origin: String(body.origin ?? ""),
+          destination: String(body.destination ?? ""),
+          cargoDetails: String(body.cargoDetails || body.message || "")
+        });
+      } else {
+        // It's a general contact inquiry
+        await queueEmail("contact_form_submitted", {
+          name: String(body.name ?? "User"),
+          email: String(body.email ?? ""),
+          subject: String(body.subject || "General Inquiry"),
+          message: String(body.message ?? "")
+        });
+      }
+    }
+
     return { ok: true } as T;
   }
 

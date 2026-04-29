@@ -188,3 +188,102 @@ export async function sendShipmentStatusUpdatedEmail(payload: {
 
   return { success: true };
 }
+
+export async function sendQuoteRequestEmail(payload: {
+  name: string;
+  email: string;
+  company: string;
+  origin: string;
+  destination: string;
+  cargoDetails: string;
+}) {
+  const subject = `[Quote Request] ${payload.origin} to ${payload.destination}`;
+
+  // 1. Template for Admin
+  const adminContent = `
+    <h1 style="margin-top: 0; font-size: 24px; font-weight: 800;">New Quote Request</h1>
+    <p>A potential client has requested a logistics quotation.</p>
+    
+    <div class="tracking-box">
+      <div class="tracking-label">Client Details</div>
+      <p style="margin: 4px 0;"><strong>Name:</strong> ${payload.name}</p>
+      <p style="margin: 4px 0;"><strong>Email:</strong> ${payload.email}</p>
+      <p style="margin: 4px 0;"><strong>Company:</strong> ${payload.company}</p>
+      <p style="margin: 16px 0 4px 0;"><strong>Route:</strong> ${payload.origin} &rarr; ${payload.destination}</p>
+      <p style="margin: 4px 0;"><strong>Cargo:</strong> ${payload.cargoDetails}</p>
+    </div>
+  `;
+
+  // 2. Template for Client (Confirmation)
+  const clientContent = `
+    <h1 style="margin-top: 0; font-size: 24px; font-weight: 800;">Quote Request Received</h1>
+    <p>Hello ${payload.name},</p>
+    <p>Thank you for choosing NexShip. We have received your request for a quotation from <strong>${payload.origin}</strong> to <strong>${payload.destination}</strong>.</p>
+    
+    <div class="tracking-box">
+      <div class="tracking-label">Request Summary</div>
+      <p style="margin: 4px 0;"><strong>Company:</strong> ${payload.company}</p>
+      <p style="margin: 4px 0;"><strong>Cargo:</strong> ${payload.cargoDetails}</p>
+    </div>
+    
+    <p>Our logistics analysts are currently calculating the most efficient route and competitive pricing for your shipment. You will receive a formal quotation shortly.</p>
+    
+    <div style="text-align: center; margin-top: 32px;">
+      <a href="https://nexships.com/contact" class="button">Contact Support</a>
+    </div>
+  `;
+
+  await Promise.all([
+    sendEmail({ to: SUPPORT_EMAIL, subject: `[ADMIN] ${subject}`, html: getBaseTemplate(adminContent) }),
+    sendEmail({ to: payload.email, subject: `[NexShip] We've received your quote request`, html: getBaseTemplate(clientContent) }),
+  ]);
+
+  return { success: true };
+}
+
+export async function sendContactFormEmail(payload: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}) {
+  const emailSubject = `[Contact Form] ${payload.subject}`;
+
+  // 1. Template for Admin
+  const adminContent = `
+    <h1 style="margin-top: 0; font-size: 24px; font-weight: 800;">New Inquiry</h1>
+    <p>A user has submitted a message via the website contact form.</p>
+    
+    <div class="tracking-box">
+      <div class="tracking-label">Inquiry Details</div>
+      <p style="margin: 4px 0;"><strong>Name:</strong> ${payload.name}</p>
+      <p style="margin: 4px 0;"><strong>Email:</strong> ${payload.email}</p>
+      <p style="margin: 16px 0 4px 0;"><strong>Subject:</strong> ${payload.subject}</p>
+      <p style="margin: 4px 0;"><strong>Message:</strong><br>${payload.message}</p>
+    </div>
+  `;
+
+  // 2. Template for User (Confirmation)
+  const userContent = `
+    <h1 style="margin-top: 0; font-size: 24px; font-weight: 800;">Message Received</h1>
+    <p>Hello ${payload.name},</p>
+    <p>Thank you for contacting NexShip Support. We have received your message regarding "<strong>${payload.subject}</strong>".</p>
+    
+    <div class="tracking-box">
+      <p style="margin: 0; font-style: italic; color: ${THEME.navy};">"${payload.message}"</p>
+    </div>
+    
+    <p>One of our global dispatchers will review your inquiry and get back to you as soon as possible (typically within 2-4 hours).</p>
+    
+    <div style="text-align: center; margin-top: 32px;">
+      <a href="https://nexships.com/" class="button">Visit Our Website</a>
+    </div>
+  `;
+
+  await Promise.all([
+    sendEmail({ to: SUPPORT_EMAIL, subject: `[ADMIN] ${emailSubject}`, html: getBaseTemplate(adminContent) }),
+    sendEmail({ to: payload.email, subject: `[NexShip] Message Received: ${payload.subject}`, html: getBaseTemplate(userContent) }),
+  ]);
+
+  return { success: true };
+}

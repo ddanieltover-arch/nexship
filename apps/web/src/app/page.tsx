@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { motion } from "framer-motion";
+import { QuoteModal } from "@/components/QuoteModal";
 import { 
   BarChart3, 
   Globe2, 
@@ -32,6 +34,7 @@ const itemVariants = {
 };
 
 export default function HomePage() {
+  const [isQuoteOpen, setIsQuoteOpen] = useState(false);
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 md:py-16 overflow-hidden">
       {/* Hero Section */}
@@ -379,13 +382,17 @@ export default function HomePage() {
         <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">Ready to move?</h2>
         <p className="mt-4 text-base md:text-xl text-slate-400">Join 10,000+ businesses growing with Nexships.</p>
         <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
-          <Link href="/register" className="rounded-full bg-teal px-10 py-5 font-bold text-navy hover:bg-teal-600 shadow-lg shadow-teal/20 transition-all active:scale-95 text-lg">
+          <button 
+            onClick={() => setIsQuoteOpen(true)}
+            className="rounded-full bg-teal px-10 py-5 font-bold text-navy hover:bg-teal-600 shadow-lg shadow-teal/20 transition-all active:scale-95 text-lg"
+          >
             Get a Quote
-          </Link>
+          </button>
           <Link href="/contact" className="rounded-full border border-slate-700 px-10 py-5 font-bold text-white hover:border-teal transition-all active:scale-95 text-lg">
             Contact Sales
           </Link>
         </div>
+        <QuoteModal isOpen={isQuoteOpen} onClose={() => setIsQuoteOpen(false)} />
       </motion.section>
     </div>
   );

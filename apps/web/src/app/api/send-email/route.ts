@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { sendShipmentCreatedEmail, sendShipmentStatusUpdatedEmail } from "@/lib/email-server";
+import { 
+  sendShipmentCreatedEmail, 
+  sendShipmentStatusUpdatedEmail,
+  sendQuoteRequestEmail,
+  sendContactFormEmail 
+} from "@/lib/email-server";
 
 export async function POST(req: Request) {
   try {
@@ -9,6 +14,10 @@ export async function POST(req: Request) {
       await sendShipmentCreatedEmail(payload);
     } else if (eventType === "shipment_status_updated") {
       await sendShipmentStatusUpdatedEmail(payload);
+    } else if (eventType === "quote_requested") {
+      await sendQuoteRequestEmail(payload);
+    } else if (eventType === "contact_form_submitted") {
+      await sendContactFormEmail(payload);
     }
 
     return NextResponse.json({ success: true });
