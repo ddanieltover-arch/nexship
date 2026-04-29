@@ -358,6 +358,8 @@ async function supabaseApiFetch<T>(
       shipmentId: shipment.id,
       trackingId: shipment.trackingId,
       status,
+      receiverEmail: shipment.receiverEmail,
+      description: body?.description ?? `Status updated to ${status}`,
     });
     return { shipment, event } as T;
   }

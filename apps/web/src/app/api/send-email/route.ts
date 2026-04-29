@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sendShipmentCreatedEmail } from "@/lib/email-server";
+import { sendShipmentCreatedEmail, sendShipmentStatusUpdatedEmail } from "@/lib/email-server";
 
 export async function POST(req: Request) {
   try {
@@ -7,6 +7,8 @@ export async function POST(req: Request) {
 
     if (eventType === "shipment_created") {
       await sendShipmentCreatedEmail(payload);
+    } else if (eventType === "shipment_status_updated") {
+      await sendShipmentStatusUpdatedEmail(payload);
     }
 
     return NextResponse.json({ success: true });
