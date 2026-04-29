@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { ShieldCheck, Lock, Mail } from "lucide-react";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,7 +19,12 @@ export default function LoginPage() {
     setError(null);
     setPending(true);
     try {
-      await login(email, password);
+      const loggedInUser = await login(email, password);
+      if (loggedInUser.role !== "ADMIN" && loggedInUser.role !== "STAFF") {
+        await logout();
+        setError("This account does not have admin access.");
+        return;
+      }
       router.push("/admin");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
@@ -66,7 +71,7 @@ export default function LoginPage() {
                   type="email"
                   required
                   autoComplete="email"
-                  placeholder="admin@nexships.com"
+                  placeholder="admin@veloroute.local"
                 />
               </div>
             </div>

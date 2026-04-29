@@ -9,6 +9,9 @@
   "scripts": {
     "build": "turbo build",
     "dev": "concurrently -n api,web -c cyan,magenta \"npm run dev --workspace=@veloroute/api\" \"npm run dev --workspace=@veloroute/web\"",
+    "dev:merged": "npm run dev --workspace=@veloroute/server",
+    "build:merged": "turbo run build --filter=@veloroute/web --filter=@veloroute/api --filter=@veloroute/server",
+    "start:merged": "npm run start --workspace=@veloroute/server",
     "lint": "turbo lint",
     "db:generate": "npm run generate --workspace=@veloroute/db",
     "db:migrate": "npm run migrate --workspace=@veloroute/db",

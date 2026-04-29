@@ -17,7 +17,12 @@ import { registerContactRoutes } from "./routes/contact.js";
 import { registerSupportRoutes } from "./routes/support.js";
 import { registerUploadRoutes } from "./routes/upload.js";
 
-export async function buildApp() {
+export type BuildAppOptions = {
+  /** Omit GET `/` JSON landing so Next.js (or another host) can serve the site root in a merged server. */
+  integrated?: boolean;
+};
+
+export async function buildApp(options?: BuildAppOptions) {
   const app = Fastify({ logger: true });
 
   await app.register(cors, {
@@ -81,12 +86,14 @@ export async function buildApp() {
     { prefix: "/api/v1" }
   );
 
-  app.get("/", async () => ({ 
-    name: "Nexships Logistics API", 
-    version: "1.0.0",
-    status: "online",
-    message: "The API is active. Please visit https://nexships.com to access the Nexships Global Platform." 
-  }));
+  if (!options?.integrated) {
+    app.get("/", async () => ({
+      name: "Nexships Logistics API",
+      version: "1.0.0",
+      status: "online",
+      message: "The API is active. Please visit https://nexships.com to access the Nexships Global Platform.",
+    }));
+  }
 
   app.get("/health", async () => ({ ok: true }));
 
@@ -99,17 +106,15 @@ export default function handler(req: IncomingMessage, res: ServerResponse) {
   if (!cachedAppPromise) {
     cachedAppPromise = buildApp();
   }
-  cachedAppPromise.then((app) => {
-    app.ready().then(() => {
-      app.server.emit("request", req, res);
-    }).catch((err) => {
+  void cachedAppPromise
+    .then((app) =>
+      Promise.resolve(app.ready()).then(() => {
+        app.server.emit("request", req, res);
+      })
+    )
+    .catch((err: unknown) => {
       console.error("Fastify ready error:", err);
       res.statusCode = 500;
       res.end("Internal Server Error");
     });
-  }).catch((err) => {
-    console.error("buildApp error:", err);
-    res.statusCode = 500;
-    res.end("Internal Server Error");
-  });
 }

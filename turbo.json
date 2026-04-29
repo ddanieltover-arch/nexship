@@ -20,7 +20,11 @@
         "SMTP_FROM",
         "SEED_ADMIN_PASSWORD",
         "NEXT_PUBLIC_API_URL",
-        "NEXT_PUBLIC_WS_URL"
+        "NEXT_PUBLIC_WS_URL",
+        "INTERNAL_API_URL",
+        "HOST",
+        "VERCEL",
+        "API_REWRITE_BASE_URL"
       ]
     },
     "dev": {

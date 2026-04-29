@@ -3,6 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": "./dist/index.js",
+    "./app": "./dist/app.js",
+    "./socket-bootstrap": "./dist/socket-bootstrap.js"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsx watch src/index.ts",

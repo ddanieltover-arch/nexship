@@ -27,7 +27,7 @@ type AuthState = {
 
 const AuthContext = createContext<
   AuthState & {
-    login: (email: string, password: string) => Promise<void>;
+    login: (email: string, password: string) => Promise<User>;
     register: (input: {
       email: string;
       password: string;
@@ -132,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshToken: string;
       }>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
       persist(res.user, res.accessToken, res.refreshToken);
+      return res.user;
     },
     [persist]
   );
