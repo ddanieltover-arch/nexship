@@ -18,6 +18,7 @@ const THEME = {
 };
 
 const LOGO_URL = "https://nexships.com/logo/0.png";
+const SUPPORT_EMAIL = "support@nexships.com";
 
 function getBaseTemplate(content: string) {
   return `
@@ -89,44 +90,68 @@ export async function sendEmail({ to, subject, html }: { to: string; subject: st
 export async function sendShipmentCreatedEmail(payload: {
   trackingId: string;
   senderEmail: string;
+  senderName: string;
   receiverEmail: string;
   receiverName: string;
 }) {
-  const content = `
-    <h1 style="margin-top: 0; font-size: 24px; font-weight: 800;">Shipment Confirmed</h1>
+  const subject = `[NexShip] Shipment Confirmed: ${payload.trackingId}`;
+
+  // 1. Template for Receiver
+  const receiverContent = `
+    <h1 style="margin-top: 0; font-size: 24px; font-weight: 800;">Your Package is Ready!</h1>
     <p>Hello ${payload.receiverName},</p>
-    <p>Your shipment has been successfully registered in our global logistics network and is ready for dispatch.</p>
+    <p>We are excited to inform you that a package from <strong>${payload.senderName}</strong> is on its way to you.</p>
     
     <div class="tracking-box">
-      <div class="tracking-label">Tracking Identification</div>
+      <div class="tracking-label">Your Tracking ID</div>
       <div class="tracking-id">${payload.trackingId}</div>
     </div>
     
-    <p>You can monitor your package in real-time as it moves across our international nodes using our high-fidelity tracking system.</p>
+    <p>Our global logistics network has registered your consignment, and you can now monitor its journey in real-time.</p>
     
     <div style="text-align: center; margin-top: 32px;">
-      <a href="https://nexships.com/track/${payload.trackingId}" class="button">Track Your Shipment</a>
-    </div>
-    
-    <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #eee;">
-      <h3 style="font-size: 14px; text-transform: uppercase; color: ${THEME.slate};">Why NexShip?</h3>
-      <p style="font-size: 13px; color: ${THEME.slate};">
-        NexShip is a leading global logistics provider specializing in high-security, time-critical deliveries. 
-        With our proprietary real-time monitoring and global network of strategically located distribution hubs, 
-        we ensure your consignment arrives safely and on schedule, anywhere in the world.
-      </p>
+      <a href="https://nexships.com/track/${payload.trackingId}" class="button">Track Your Package</a>
     </div>
   `;
 
-  const html = getBaseTemplate(content);
-  const subject = `[NexShip] Shipment Confirmed: ${payload.trackingId}`;
+  // 2. Template for Sender
+  const senderContent = `
+    <h1 style="margin-top: 0; font-size: 24px; font-weight: 800;">Shipment Successfully Sent</h1>
+    <p>Hello ${payload.senderName},</p>
+    <p>The package you sent to <strong>${payload.receiverName}</strong> has been successfully registered in our system.</p>
+    
+    <div class="tracking-box">
+      <div class="tracking-label">Tracking ID for reference</div>
+      <div class="tracking-id">${payload.trackingId}</div>
+    </div>
+    
+    <p>We have initiated the transit process, and your recipient will be notified of its progress.</p>
+    
+    <div style="text-align: center; margin-top: 32px;">
+      <a href="https://nexships.com/track/${payload.trackingId}" class="button">Monitor Shipment</a>
+    </div>
+  `;
 
-  const results = await Promise.all([
-    sendEmail({ to: payload.senderEmail, subject, html }),
-    sendEmail({ to: payload.receiverEmail, subject, html }),
+  // 3. Template for Support/Admin
+  const adminContent = `
+    <h1 style="margin-top: 0; font-size: 24px; font-weight: 800;">New Shipment Notification</h1>
+    <p>A new shipment has been created in the NexShip network.</p>
+    
+    <div class="tracking-box">
+      <div class="tracking-label">Details</div>
+      <p style="margin: 4px 0;"><strong>ID:</strong> ${payload.trackingId}</p>
+      <p style="margin: 4px 0;"><strong>From:</strong> ${payload.senderName} (${payload.senderEmail})</p>
+      <p style="margin: 4px 0;"><strong>To:</strong> ${payload.receiverName} (${payload.receiverEmail})</p>
+    </div>
+  `;
+
+  await Promise.all([
+    sendEmail({ to: payload.receiverEmail, subject, html: getBaseTemplate(receiverContent) }),
+    sendEmail({ to: payload.senderEmail, subject, html: getBaseTemplate(senderContent) }),
+    sendEmail({ to: SUPPORT_EMAIL, subject: `[ADMIN] New Shipment Created: ${payload.trackingId}`, html: getBaseTemplate(adminContent) }),
   ]);
 
-  return results;
+  return { success: true };
 }
 
 export async function sendShipmentStatusUpdatedEmail(payload: {
@@ -136,7 +161,7 @@ export async function sendShipmentStatusUpdatedEmail(payload: {
   description: string;
 }) {
   const content = `
-    <h1 style="margin-top: 0; font-size: 24px; font-weight: 800;">Status Update</h1>
+    <h1 style="margin-top: 0; font-size: 24px; font-weight: 800;">Package Status Update</h1>
     <p>The status of your shipment <strong>${payload.trackingId}</strong> has been updated.</p>
     
     <div class="tracking-box">
@@ -145,7 +170,7 @@ export async function sendShipmentStatusUpdatedEmail(payload: {
       <p style="margin: 12px 0 0 0; font-weight: 600; color: ${THEME.navy};">${payload.description}</p>
     </div>
     
-    <p>Our logistics specialists are currently handling your package to ensure optimal transit times.</p>
+    <p>Our team is ensuring your package stays on schedule. You can view the live GPS coordinates and transit history below.</p>
     
     <div style="text-align: center; margin-top: 32px;">
       <a href="https://nexships.com/track/${payload.trackingId}" class="button">View Live Progress</a>
@@ -155,5 +180,11 @@ export async function sendShipmentStatusUpdatedEmail(payload: {
   const html = getBaseTemplate(content);
   const subject = `[NexShip] Status Update for ${payload.trackingId}`;
 
-  return sendEmail({ to: payload.receiverEmail, subject, html });
+  // Notify receiver and CC support
+  await Promise.all([
+    sendEmail({ to: payload.receiverEmail, subject, html }),
+    sendEmail({ to: SUPPORT_EMAIL, subject: `[CC] Status Update: ${payload.trackingId}`, html }),
+  ]);
+
+  return { success: true };
 }

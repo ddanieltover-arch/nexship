@@ -71,7 +71,7 @@ export default function ContactPage() {
           className="space-y-8 lg:col-span-1"
         >
           {[
-            { title: "General Inquiries", detail: "nexship87@gmail.com", icon: Mail },
+            { title: "General Inquiries", detail: "support@nexships.com", icon: Mail },
             { title: "Global Hotline", detail: "+1 (800) NEX-SHIPS", icon: Phone },
             { title: "Global Offices", detail: "USA, Canada, UK, China, Germany", icon: MapPin },
             { title: "Business Hours", detail: "24/7 Operational Support", icon: Clock },

@@ -264,6 +264,7 @@ async function supabaseApiFetch<T>(
       shipmentId: shipment.id,
       trackingId: shipment.trackingId,
       senderEmail: shipment.senderEmail,
+      senderName: shipment.senderName,
       receiverEmail: shipment.receiverEmail,
       receiverName: shipment.receiverName,
     });
