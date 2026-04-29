@@ -188,111 +188,162 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
       const markersGroup = markersGroupRef.current!;
       markersGroup.clearLayers();
 
-      const iconA = L.divIcon({
-          className: 'custom-pin-a',
-          html: `<div style="position:relative; width:30px; height:42px;">
-                  <svg viewBox="0 0 384 512" style="fill:#22c55e; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
-                      <path d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
-                  </svg>
-                  <span style="position:absolute; top:8px; left:0; right:0; text-align:center; color:white; font-weight:900; font-family:sans-serif; font-size:14px;">A</span>
-                 </div>`,
-          iconSize: [30, 42],
-          iconAnchor: [15, 42]
-      });
+      // ── Build the full journey waypoints ──
+      // 1. Origin address
+      // 2. Each tracking event with coordinates
+      // 3. Destination address (if not yet reached)
+      type Waypoint = { lat: number; lng: number; label: string; city: string; isOrigin?: boolean; isDestination?: boolean; isCurrent?: boolean; status?: string };
+      const waypoints: Waypoint[] = [];
 
-      const iconB = L.divIcon({
-          className: 'custom-pin-b',
-          html: `<div style="position:relative; width:30px; height:42px;">
-                  <svg viewBox="0 0 384 512" style="fill:#ef4444; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
-                      <path d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
-                  </svg>
-                  <span style="position:absolute; top:8px; left:0; right:0; text-align:center; color:white; font-weight:900; font-family:sans-serif; font-size:14px;">B</span>
-                 </div>`,
-          iconSize: [30, 42],
-          iconAnchor: [15, 42]
-      });
-
-      const previousPoint = previousAndCurrentPoints?.previous ?? null;
-      const currentPoint = previousAndCurrentPoints?.current ?? null;
-
-      if (previousPoint) {
-          L.marker([previousPoint.lat, previousPoint.lng], { icon: iconA })
-              .addTo(markersGroup)
-              .bindPopup(`<div style="font-family:sans-serif; font-weight:bold; color:#1e293b;">Previous Location</div><div style="font-size:12px; color:#64748b;">${previousPoint.city ?? "Unknown city"}</div>`);
+      // Origin
+      if (data.origin.lat != null && data.origin.lng != null) {
+        waypoints.push({
+          lat: data.origin.lat,
+          lng: data.origin.lng,
+          label: "A",
+          city: data.origin.city || "Origin",
+          isOrigin: true,
+          status: "SENDER",
+        });
       }
 
-      if (currentPoint) {
-          L.marker([currentPoint.lat, currentPoint.lng], { icon: iconB })
-              .addTo(markersGroup)
-              .bindPopup(`<div style="font-family:sans-serif; font-weight:bold; color:#1e293b;">Current Location</div><div style="font-size:12px; color:#64748b;">${currentPoint.city ?? "Unknown city"}</div>`);
+      // Each tracking event with coordinates
+      const geoEvents = data.events.filter(e => e.lat != null && e.lng != null);
+      geoEvents.forEach((e, i) => {
+        waypoints.push({
+          lat: e.lat!,
+          lng: e.lng!,
+          label: String(i + 1),
+          city: e.city || "In Transit",
+          status: e.status,
+          isCurrent: i === geoEvents.length - 1,
+        });
+      });
+
+      // Destination (show if coords exist and shipment is delivered, or always show as target)
+      if (data.destination.lat != null && data.destination.lng != null) {
+        waypoints.push({
+          lat: data.destination.lat,
+          lng: data.destination.lng,
+          label: "B",
+          city: data.destination.city || "Destination",
+          isDestination: true,
+          status: "RECEIVER",
+        });
       }
 
+      // ── Place markers for every waypoint ──
+      waypoints.forEach((wp) => {
+        let fillColor = "#3b82f6"; // blue for transit stops
+        let labelText = wp.label;
+
+        if (wp.isOrigin) fillColor = "#22c55e"; // green
+        else if (wp.isDestination) fillColor = "#ef4444"; // red
+        else if (wp.isCurrent) fillColor = "#06b6d4"; // teal for current
+
+        const icon = L.divIcon({
+          className: "journey-pin",
+          html: `<div style="position:relative; width:30px; height:42px;">
+                  <svg viewBox="0 0 384 512" style="fill:${fillColor}; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+                      <path d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
+                  </svg>
+                  <span style="position:absolute; top:7px; left:0; right:0; text-align:center; color:white; font-weight:900; font-family:sans-serif; font-size:${labelText.length > 1 ? '10' : '13'}px;">${labelText}</span>
+                 </div>`,
+          iconSize: [30, 42],
+          iconAnchor: [15, 42],
+        });
+
+        const roleLabel = wp.isOrigin ? "📦 Sender Location" : wp.isDestination ? "🏠 Receiver Location" : wp.isCurrent ? "📍 Current Location" : "📍 Transit Stop";
+
+        L.marker([wp.lat, wp.lng], { icon })
+          .addTo(markersGroup)
+          .bindPopup(`<div style="font-family:sans-serif; min-width:130px;">
+                        <div style="font-size:10px; font-weight:bold; color:#94a3b8; text-transform:uppercase; letter-spacing:1px;">${roleLabel}</div>
+                        <div style="font-size:14px; font-weight:bold; color:#0f172a; margin-top:4px;">${wp.city}</div>
+                        ${wp.status && !wp.isOrigin && !wp.isDestination ? `<div style="font-size:11px; color:#64748b; margin-top:2px;">${wp.status.replace(/_/g, " ")}</div>` : ""}
+                      </div>`);
+      });
+
+      // ── Open popup on latest event ──
       const latestEvent = data.events[data.events.length - 1];
       if (latestEvent?.lat && latestEvent?.lng) {
         L.popup({ closeButton: false, offset: [0, -10] })
           .setLatLng([latestEvent.lat, latestEvent.lng])
           .setContent(`<div style="padding:10px; min-width:140px;">
-                          <div style="font-size:10px; font-weight:bold; color:#94a3b8; text-transform:uppercase; letter-spacing:1px;">Shipment Update</div>
+                          <div style="font-size:10px; font-weight:bold; color:#94a3b8; text-transform:uppercase; letter-spacing:1px;">Latest Update</div>
                           <div style="font-size:14px; font-weight:bold; color:#0f172a; margin-top:2px;">${latestEvent.status.replace(/_/g, " ")}</div>
+                          ${latestEvent.city ? `<div style="font-size:11px; color:#64748b; margin-top:2px;">📍 ${latestEvent.city}</div>` : ""}
                        </div>`)
           .openOn(map);
       }
 
-      const segmentPoints: [number, number][] =
-        previousPoint && currentPoint
-          ? [
-              [previousPoint.lat, previousPoint.lng],
-              [currentPoint.lat, currentPoint.lng],
-            ]
-          : points;
+      // ── Draw route polyline through ALL waypoints ──
+      const allRoutePoints: [number, number][] = waypoints.map(wp => [wp.lat, wp.lng]);
 
-      if (segmentPoints.length >= 2) {
+      if (allRoutePoints.length >= 2) {
+        // Solid completed route (from origin through all events)
+        const completedPoints = allRoutePoints.slice(0, allRoutePoints.length - (data.destination.lat != null ? 1 : 0));
         if (routePolylineRef.current) {
-          routePolylineRef.current.setLatLngs(segmentPoints);
+          routePolylineRef.current.setLatLngs(completedPoints.length >= 2 ? completedPoints : allRoutePoints);
         } else {
-          routePolylineRef.current = L.polyline(segmentPoints, {
+          routePolylineRef.current = L.polyline(completedPoints.length >= 2 ? completedPoints : allRoutePoints, {
             color: "#2563eb",
             weight: 5,
             opacity: 0.9,
             lineJoin: "round",
           }).addTo(map);
         }
+
+        // Dashed remaining route (from last event to destination)
+        if (data.destination.lat != null && data.destination.lng != null && completedPoints.length >= 1 && data.status !== "DELIVERED") {
+          const lastCompleted = completedPoints[completedPoints.length - 1];
+          const destPoint: [number, number] = [data.destination.lat, data.destination.lng];
+          if (!liveTrailRef.current) {
+            liveTrailRef.current = L.polyline([lastCompleted, destPoint], {
+              color: "#06b6d4",
+              weight: 4,
+              opacity: 0.7,
+              lineJoin: "round",
+              dashArray: "10 12",
+            }).addTo(map);
+          } else {
+            liveTrailRef.current.setLatLngs([lastCompleted, destPoint]);
+          }
+        } else if (data.status === "DELIVERED" && routePolylineRef.current) {
+          // If delivered, make the full route solid
+          routePolylineRef.current.setLatLngs(allRoutePoints);
+          if (liveTrailRef.current) liveTrailRef.current.setLatLngs([]);
+        }
       }
 
-      if (segmentPoints.length > 0) {
-        const bounds = L.latLngBounds(segmentPoints);
+      // ── Fit map to show ALL waypoints ──
+      if (allRoutePoints.length > 0) {
+        const bounds = L.latLngBounds(allRoutePoints);
         map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14, animate: true });
       } else {
-        // Fallback view if no points are available
         map.setView([20, 0], 2);
       }
 
       // Re-invalidate size on every data update to be safe
       map.invalidateSize();
 
-      if (!liveTrailRef.current) {
-        liveTrailRef.current = L.polyline([], {
-          color: "#22d3ee",
-          weight: 4,
-          opacity: 0.85,
-          lineJoin: "round",
-          dashArray: "8 10",
-        }).addTo(map);
-      }
+      // ── Animated truck marker at the current location ──
+      const currentPos = geoEvents.length > 0
+        ? [geoEvents[geoEvents.length - 1].lat!, geoEvents[geoEvents.length - 1].lng!] as [number, number]
+        : (data.origin.lat != null && data.origin.lng != null ? [data.origin.lat, data.origin.lng] as [number, number] : null);
 
-      const currentPos = segmentPoints[segmentPoints.length - 1];
       if (currentPos) {
         const animatedIcon = L.divIcon({
           className: "live-transit-marker",
-          html: `<div style="position:relative; width:24px; height:24px;">
+          html: `<div style="position:relative; width:28px; height:28px;">
                   <div style="position:absolute; inset:0; border-radius:9999px; background:rgba(6,182,212,0.28); animation:ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
-                  <div style="position:absolute; inset:4px; border-radius:9999px; background:#06b6d4; color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; box-shadow:0 2px 8px rgba(0,0,0,0.4);">🚚</div>
+                  <div style="position:absolute; inset:3px; border-radius:9999px; background:#06b6d4; color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; box-shadow:0 2px 8px rgba(0,0,0,0.4);">🚚</div>
                 </div>`,
-          iconSize: [24, 24],
-          iconAnchor: [12, 12],
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
         });
         if (!liveMarkerRef.current) {
-          liveMarkerRef.current = L.marker(currentPos, { icon: animatedIcon }).addTo(map);
+          liveMarkerRef.current = L.marker(currentPos, { icon: animatedIcon, zIndexOffset: 1000 }).addTo(map);
         } else {
           liveMarkerRef.current.setLatLng(currentPos);
         }
@@ -307,14 +358,20 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
   }, [data, points, previousAndCurrentPoints]);
 
   useEffect(() => {
-    if (!leafletReady || !mapInstance.current || !previousAndCurrentPoints) return;
+    if (!leafletReady || !mapInstance.current || !data) return;
+
+    // Build the last segment for animation: from the second-to-last event to the current event
+    const geoEvents = data.events.filter(e => e.lat != null && e.lng != null);
+    if (geoEvents.length < 2) return;
+
+    const prev = geoEvents[geoEvents.length - 2];
+    const curr = geoEvents[geoEvents.length - 1];
+    const start: [number, number] = [prev.lat!, prev.lng!];
+    const end: [number, number] = [curr.lat!, curr.lng!];
+
     let stop = false;
-    const map = mapInstance.current;
-    const start: [number, number] = [previousAndCurrentPoints.previous.lat, previousAndCurrentPoints.previous.lng];
-    const end: [number, number] = [previousAndCurrentPoints.current.lat, previousAndCurrentPoints.current.lng];
-    const duration = 9000;
+    const duration = 12000;
     const startedAt = performance.now();
-    const segment: [number, number][] = [];
 
     if (travelAnimRef.current) {
       cancelAnimationFrame(travelAnimRef.current);
@@ -322,8 +379,8 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
 
     const tick = (now: number) => {
       if (stop) return;
-      const raw = ((now - startedAt) % duration) / duration;
-      const t = raw < 0.5 ? raw * 2 : 2 - raw * 2;
+      const elapsed = now - startedAt;
+      const t = Math.min(elapsed / duration, 1);
       const eased = t * t * (3 - 2 * t);
       const lat = start[0] + (end[0] - start[0]) * eased;
       const lng = start[1] + (end[1] - start[1]) * eased;
@@ -332,13 +389,10 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
       if (liveMarkerRef.current) {
         liveMarkerRef.current.setLatLng(pos);
       }
-      segment.push(pos);
-      if (liveTrailRef.current) {
-        liveTrailRef.current.setLatLngs(segment.slice(-30));
-      }
-      map.panTo(pos, { animate: true, duration: 0.4 });
 
-      travelAnimRef.current = requestAnimationFrame(tick);
+      if (t < 1) {
+        travelAnimRef.current = requestAnimationFrame(tick);
+      }
     };
 
     travelAnimRef.current = requestAnimationFrame(tick);
@@ -349,7 +403,7 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
         travelAnimRef.current = null;
       }
     };
-  }, [previousAndCurrentPoints, leafletReady]);
+  }, [data, leafletReady]);
 
   useEffect(() => {
     if (!data || !data.id || !supabase) return () => {};
