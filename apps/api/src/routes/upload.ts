@@ -1,5 +1,4 @@
 import type { FastifyInstance } from "fastify";
-import sharp from "sharp";
 import { promises as fs } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
@@ -32,6 +31,7 @@ export async function registerUploadRoutes(app: FastifyInstance) {
       if (isImage) {
         // Compress and convert to WebP
         const buffer = await data.toBuffer();
+        const { default: sharp } = await import("sharp");
         await sharp(buffer)
           .webp({ quality: 80 }) // Compress to 80% quality
           .toFile(filepath);
