@@ -117,9 +117,9 @@ export async function registerAdminRoutes(app: FastifyInstance) {
       let avgTransitHours = 0;
       if (transitSum.length) {
         const hours = transitSum
-          .filter((s) => s.deliveredAt)
-          .map((s) => (s.deliveredAt!.getTime() - s.createdAt.getTime()) / 3600000);
-        avgTransitHours = hours.length ? hours.reduce((a, b) => a + b, 0) / hours.length : 0;
+          .filter((s: { deliveredAt: Date | null }) => s.deliveredAt)
+          .map((s: { deliveredAt: Date | null; createdAt: Date }) => (s.deliveredAt!.getTime() - s.createdAt.getTime()) / 3600000);
+        avgTransitHours = hours.length ? hours.reduce((a: number, b: number) => a + b, 0) / hours.length : 0;
       }
       return reply.send({
         activeShipments,

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { NotificationType, prisma, ShipmentStatus, Role, Prisma } from "@veloroute/db";
+import { NotificationType, prisma, ShipmentStatus, Role } from "@veloroute/db";
+import type { Prisma } from "@prisma/client";
 import { AppError } from "../lib/errors.js";
 import { approximateCoords } from "../lib/geocode.js";
 import { requireAuth, requireRoles } from "../middleware/auth.js";
@@ -61,6 +62,9 @@ const documentSchema = z.object({
   mimeType: z.string(),
 });
 
+type ShipmentWhereInput = NonNullable<Parameters<typeof prisma.shipment.findMany>[0]>["where"];
+type ShipmentWhereClause = Exclude<ShipmentWhereInput, undefined>;
+
 async function ensureShipmentAccess(shipmentId: string, userId: string, role: Role) {
   const shipment = await prisma.shipment.findUnique({
     where: { id: shipmentId },
@@ -81,7 +85,7 @@ export async function registerShipmentRoutes(app: FastifyInstance) {
       if (!q.success) throw new AppError("VALIDATION_ERROR", "Invalid query", 400);
 
       const { status, page, limit, search, from, to } = q.data;
-      const and: Prisma.ShipmentWhereInput[] = [];
+      const and: ShipmentWhereClause[] = [];
 
       if (req.user!.role === Role.CUSTOMER) {
         and.push({ customerId: req.user!.id });
@@ -105,7 +109,7 @@ export async function registerShipmentRoutes(app: FastifyInstance) {
         });
       }
 
-      const where: Prisma.ShipmentWhereInput = and.length ? { AND: and } : {};
+      const where: ShipmentWhereInput = and.length ? { AND: and } : undefined;
 
       const [items, total] = await Promise.all([
         prisma.shipment.findMany({
@@ -158,7 +162,7 @@ export async function registerShipmentRoutes(app: FastifyInstance) {
       const oCoords = approximateCoords(o.city, o.country);
       const dCoords = approximateCoords(d.city, d.country);
 
-      const shipment = await prisma.$transaction(async (tx) => {
+      const shipment = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const origin = await tx.address.create({
           data: {
             street: o.street,
@@ -271,7 +275,7 @@ export async function registerShipmentRoutes(app: FastifyInstance) {
       });
       if (!existing) throw new AppError("NOT_FOUND", "Shipment not found", 404);
 
-      const shipment = await prisma.$transaction(async (tx) => {
+      const shipment = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         if (body.data.origin) {
           await tx.address.update({
             where: { id: existing.originId },
