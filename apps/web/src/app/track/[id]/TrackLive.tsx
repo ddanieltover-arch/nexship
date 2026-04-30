@@ -232,6 +232,17 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
         });
       }
 
+      const formatStatus = (s: string) => {
+        if (s === "PICK_UP") return "Pick up";
+        if (s === "IN_TRANSIT") return "In Transit";
+        if (s === "ON_HOLD") return "On Hold";
+        if (s === "CUSTOMS_CLEARANCE") return "Customs Clearance";
+        if (s === "OUT_FOR_DELIVERY") return "Out for Delivery";
+        if (s === "DELIVERED") return "Delivered";
+        if (s === "EXCEPTION_DELAYED") return "Exception / Delayed";
+        return s.replace(/_/g, " ");
+      };
+
       // ── Place markers for every waypoint ──
       waypoints.forEach((wp) => {
         let fillColor = "#3b82f6"; // blue for transit stops
@@ -260,7 +271,7 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
           .bindPopup(`<div style="font-family:sans-serif; min-width:130px;">
                         <div style="font-size:10px; font-weight:bold; color:#94a3b8; text-transform:uppercase; letter-spacing:1px;">${roleLabel}</div>
                         <div style="font-size:14px; font-weight:bold; color:#0f172a; margin-top:4px;">${wp.city}</div>
-                        ${wp.status && !wp.isOrigin && !wp.isDestination ? `<div style="font-size:11px; color:#64748b; margin-top:2px;">${wp.status.replace(/_/g, " ")}</div>` : ""}
+                        ${wp.status && !wp.isOrigin && !wp.isDestination ? `<div style="font-size:11px; color:#64748b; margin-top:2px;">${formatStatus(wp.status)}</div>` : ""}
                       </div>`);
       });
 
@@ -271,7 +282,7 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
           .setLatLng([latestEvent.lat, latestEvent.lng])
           .setContent(`<div style="padding:10px; min-width:140px;">
                           <div style="font-size:10px; font-weight:bold; color:#94a3b8; text-transform:uppercase; letter-spacing:1px;">Latest Update</div>
-                          <div style="font-size:14px; font-weight:bold; color:#0f172a; margin-top:2px;">${latestEvent.status.replace(/_/g, " ")}</div>
+                          <div style="font-size:14px; font-weight:bold; color:#0f172a; margin-top:2px;">${formatStatus(latestEvent.status)}</div>
                           ${latestEvent.city ? `<div style="font-size:11px; color:#64748b; margin-top:2px;">📍 ${latestEvent.city}</div>` : ""}
                        </div>`)
           .openOn(map);
@@ -475,7 +486,16 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-teal"></span>
                     </span>
-                    <p className="text-sm font-bold text-white uppercase">{data.status.replace(/_/g, " ")}</p>
+                    <p className="text-sm font-bold text-white uppercase">
+                        {data.status === "PICK_UP" ? "Pick up" :
+                         data.status === "IN_TRANSIT" ? "In Transit" :
+                         data.status === "ON_HOLD" ? "On Hold" :
+                         data.status === "CUSTOMS_CLEARANCE" ? "Customs Clearance" :
+                         data.status === "OUT_FOR_DELIVERY" ? "Out for Delivery" :
+                         data.status === "DELIVERED" ? "Delivered" :
+                         data.status === "EXCEPTION_DELAYED" ? "Exception / Delayed" :
+                         data.status.replace(/_/g, " ")}
+                    </p>
                 </div>
             </div>
             <div className="hidden md:block">
@@ -535,7 +555,16 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
                             </div>
                             <div className="pb-8">
                                 <div className="flex items-center gap-3">
-                                    <span className="text-xs font-black text-white uppercase tracking-widest">{e.status.replace(/_/g, " ")}</span>
+                                    <span className="text-xs font-black text-white uppercase tracking-widest">
+                                        {e.status === "PICK_UP" ? "Pick up" :
+                                         e.status === "IN_TRANSIT" ? "In Transit" :
+                                         e.status === "ON_HOLD" ? "On Hold" :
+                                         e.status === "CUSTOMS_CLEARANCE" ? "Customs Clearance" :
+                                         e.status === "OUT_FOR_DELIVERY" ? "Out for Delivery" :
+                                         e.status === "DELIVERED" ? "Delivered" :
+                                         e.status === "EXCEPTION_DELAYED" ? "Exception / Delayed" :
+                                         e.status.replace(/_/g, " ")}
+                                    </span>
                                     <span className="text-[10px] font-bold text-slate-500">{new Date(e.timestamp).toLocaleString()}</span>
                                 </div>
                                 <p className="text-sm text-slate-400 mt-2 font-medium">{e.description || "Package movement recorded"}</p>

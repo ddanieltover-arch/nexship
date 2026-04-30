@@ -92,7 +92,7 @@ export default function AdminShipmentsPage() {
               className="w-full appearance-none rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-2.5 text-sm text-slate-300 focus:border-teal outline-none transition-all"
             >
               <option value="">All Statuses</option>
-              {["CREATED", "PICKED_UP", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED", "FAILED"].map(s => (
+              {["CREATED", "PICK_UP", "IN_TRANSIT", "ON_HOLD", "CUSTOMS_CLEARANCE", "OUT_FOR_DELIVERY", "DELIVERED", "EXCEPTION_DELAYED"].map(s => (
                 <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
               ))}
             </select>
@@ -131,7 +131,14 @@ export default function AdminShipmentsPage() {
                 </td>
                 <td className="px-6 py-8">
                    <span className="rounded-full bg-[#dbeafe] dark:bg-blue-900/30 px-3 py-1.5 text-[11px] font-bold text-[#1e40af] dark:text-blue-300">
-                    {s.status.replace(/_/g, " ").toLowerCase().replace(/^\w/, (c) => c.toUpperCase())}
+                    {s.status === "PICK_UP" ? "Pick up" :
+                      s.status === "IN_TRANSIT" ? "In Transit" :
+                      s.status === "ON_HOLD" ? "On Hold" :
+                      s.status === "CUSTOMS_CLEARANCE" ? "Customs Clearance" :
+                      s.status === "OUT_FOR_DELIVERY" ? "Out for Delivery" :
+                      s.status === "DELIVERED" ? "Delivered" :
+                      s.status === "EXCEPTION_DELAYED" ? "Exception / Delayed" :
+                      s.status.replace(/_/g, " ")}
                    </span>
                 </td>
                 <td className="px-6 py-8 text-slate-300 font-medium whitespace-nowrap">
@@ -279,9 +286,16 @@ function UpdateStatusForm({
                       onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
                       className="w-full appearance-none rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
                     >
-                      {["PICKED_UP", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED", "FAILED", "RETURNED"].map((s) => (
+                      {["PICK_UP", "IN_TRANSIT", "ON_HOLD", "CUSTOMS_CLEARANCE", "OUT_FOR_DELIVERY", "DELIVERED", "EXCEPTION_DELAYED"].map((s) => (
                         <option key={s} value={s}>
-                          {s.replace(/_/g, " ").toLowerCase().replace(/^\w/, (c) => c.toUpperCase())}
+                          {s === "PICK_UP" ? "Pick up" :
+                           s === "IN_TRANSIT" ? "In Transit" :
+                           s === "ON_HOLD" ? "On Hold" :
+                           s === "CUSTOMS_CLEARANCE" ? "Customs Clearance" :
+                           s === "OUT_FOR_DELIVERY" ? "Out for Delivery" :
+                           s === "DELIVERED" ? "Delivered" :
+                           s === "EXCEPTION_DELAYED" ? "Exception / Delayed" :
+                           s.replace(/_/g, " ")}
                         </option>
                       ))}
                     </select>

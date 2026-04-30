@@ -440,9 +440,9 @@ async function supabaseApiFetch<T>(
     const { data: shipments, error } = await sb.from("Shipment").select("status,createdAt,deliveredAt");
     if (error) throw new Error(error.message);
     const all = shipments ?? [];
-    const activeShipments = all.filter((s: any) => !["DELIVERED", "FAILED", "RETURNED"].includes(s.status)).length;
+    const activeShipments = all.filter((s: any) => !["DELIVERED", "EXCEPTION_DELAYED"].includes(s.status)).length;
     const deliveredTotal = all.filter((s: any) => s.status === "DELIVERED").length;
-    const failedTotal = all.filter((s: any) => s.status === "FAILED").length;
+    const failedTotal = all.filter((s: any) => s.status === "EXCEPTION_DELAYED").length;
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
     const deliveredToday = all.filter((s: any) => s.status === "DELIVERED" && s.deliveredAt && new Date(s.deliveredAt) >= startOfDay).length;
