@@ -26,6 +26,10 @@ export function SmartsuppChat() {
     if (!window.smartsupp) {
       window._smartsupp = window._smartsupp || {};
       window._smartsupp.key = key;
+      // Set initial offsets
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      window._smartsupp.offsetY = isMobile ? 160 : 20;
+      window._smartsupp.offsetX = 20;
       
       const o = function() {
         (o as any).q = (o as any).q || [];
@@ -56,8 +60,8 @@ export function SmartsuppChat() {
       const isMobile = window.innerWidth < 768;
       window.smartsupp('options', {
         accentColor: '#06b6d4',
-        offsetVertical: isMobile ? 140 : 20,
-        offsetHorizontal: 20
+        offsetY: isMobile ? 160 : 20,
+        offsetX: 20
       });
     };
 
