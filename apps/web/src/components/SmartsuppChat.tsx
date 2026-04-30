@@ -56,7 +56,7 @@ export function SmartsuppChat() {
       const isMobile = window.innerWidth < 768;
       window.smartsupp('options', {
         accentColor: '#06b6d4',
-        offsetVertical: isMobile ? 100 : 20,
+        offsetVertical: isMobile ? 140 : 20,
         offsetHorizontal: 20
       });
     };
