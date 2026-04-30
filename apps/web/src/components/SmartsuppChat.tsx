@@ -28,7 +28,7 @@ export function SmartsuppChat() {
       window._smartsupp.key = key;
       // Set initial offsets
       const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-      window._smartsupp.offsetY = isMobile ? 160 : 20;
+      window._smartsupp.offsetY = isMobile ? 90 : 20;
       window._smartsupp.offsetX = 20;
       
       const o = function() {
@@ -60,7 +60,7 @@ export function SmartsuppChat() {
       const isMobile = window.innerWidth < 768;
       window.smartsupp('options', {
         accentColor: '#06b6d4',
-        offsetY: isMobile ? 160 : 20,
+        offsetY: isMobile ? 90 : 20,
         offsetX: 20
       });
     };
