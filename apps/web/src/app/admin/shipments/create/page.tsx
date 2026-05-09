@@ -244,14 +244,7 @@ export default function CreateShipmentPage() {
                 onChange={(e: any) => setForm({...form, senderCity: e.target.value})}
               />
               <Input 
-                label="Sender Country*" 
-                placeholder="e.g., Poland" 
-                required
-                value={form.senderCountry}
-                onChange={(e: any) => setForm({...form, senderCountry: e.target.value})}
-              />
-              <Input 
-                label="Sender State / Province / Region" 
+                label="Sender State / Region" 
                 placeholder="e.g., Lower Silesian" 
                 value={form.senderState}
                 onChange={(e: any) => setForm({...form, senderState: e.target.value})}
@@ -261,6 +254,13 @@ export default function CreateShipmentPage() {
                 placeholder="e.g., 51-644" 
                 value={form.senderPostalCode}
                 onChange={(e: any) => setForm({...form, senderPostalCode: e.target.value})}
+              />
+              <Input 
+                label="Sender Country*" 
+                placeholder="e.g., Poland" 
+                required
+                value={form.senderCountry}
+                onChange={(e: any) => setForm({...form, senderCountry: e.target.value})}
               />
             </div>
           </div>
@@ -306,14 +306,7 @@ export default function CreateShipmentPage() {
                 onChange={(e: any) => setForm({...form, receiverCity: e.target.value})}
               />
               <Input 
-                label="Receiver Country*" 
-                placeholder="e.g., UK" 
-                required
-                value={form.receiverCountry}
-                onChange={(e: any) => setForm({...form, receiverCountry: e.target.value})}
-              />
-              <Input 
-                label="Receiver State / Province / Region" 
+                label="Receiver State / Region" 
                 placeholder="e.g., England" 
                 value={form.receiverState}
                 onChange={(e: any) => setForm({...form, receiverState: e.target.value})}
@@ -323,6 +316,13 @@ export default function CreateShipmentPage() {
                 placeholder="e.g., SW1A 1AA" 
                 value={form.receiverPostalCode}
                 onChange={(e: any) => setForm({...form, receiverPostalCode: e.target.value})}
+              />
+              <Input 
+                label="Receiver Country*" 
+                placeholder="e.g., UK" 
+                required
+                value={form.receiverCountry}
+                onChange={(e: any) => setForm({...form, receiverCountry: e.target.value})}
               />
             </div>
           </div>

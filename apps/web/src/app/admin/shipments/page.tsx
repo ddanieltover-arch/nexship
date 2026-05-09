@@ -660,17 +660,7 @@ function EditShipmentForm({
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Sender Country</label>
-                      <input
-                        placeholder="Poland"
-                        required
-                        className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
-                        value={form.senderCountry}
-                        onChange={(e) => setForm((f) => ({ ...f, senderCountry: e.target.value }))}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Sender State / Province / Region</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Sender State / Region</label>
                       <input
                         placeholder="Lower Silesian"
                         className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
@@ -685,6 +675,16 @@ function EditShipmentForm({
                         className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
                         value={form.senderPostalCode}
                         onChange={(e) => setForm((f) => ({ ...f, senderPostalCode: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Sender Country</label>
+                      <input
+                        placeholder="Poland"
+                        required
+                        className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
+                        value={form.senderCountry}
+                        onChange={(e) => setForm((f) => ({ ...f, senderCountry: e.target.value }))}
                       />
                     </div>
                   </div>
@@ -738,17 +738,7 @@ function EditShipmentForm({
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Receiver Country</label>
-                      <input
-                        placeholder="UK"
-                        required
-                        className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
-                        value={form.receiverCountry}
-                        onChange={(e) => setForm((f) => ({ ...f, receiverCountry: e.target.value }))}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Receiver State / Province / Region</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Receiver State / Region</label>
                       <input
                         placeholder="England"
                         className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
@@ -763,6 +753,16 @@ function EditShipmentForm({
                         className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
                         value={form.receiverPostalCode}
                         onChange={(e) => setForm((f) => ({ ...f, receiverPostalCode: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Receiver Country</label>
+                      <input
+                        placeholder="UK"
+                        required
+                        className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
+                        value={form.receiverCountry}
+                        onChange={(e) => setForm((f) => ({ ...f, receiverCountry: e.target.value }))}
                       />
                     </div>
                   </div>
