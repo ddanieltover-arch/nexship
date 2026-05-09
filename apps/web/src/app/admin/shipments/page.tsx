@@ -148,10 +148,12 @@ export default function AdminShipmentsPage() {
                   {s.carrier || "SwiftNav Logistics"}
                 </td>
                 <td className="px-4 py-8 text-slate-400">
-                  {s.origin.city} {s.origin.state || s.origin.country}
+                  {[s.origin.city, s.origin.state, s.origin.country].filter(Boolean).join(", ")}
                 </td>
                 <td className="px-6 py-8 text-slate-400 max-w-[150px] truncate">
-                  {s.destination.street}, {s.destination.city}
+                  {[s.destination.street, s.destination.city, s.destination.state, s.destination.country]
+                    .filter(Boolean)
+                    .join(", ")}
                 </td>
                 <td className="px-6 py-8 text-slate-400">
                   {new Date(s.createdAt).toLocaleDateString()}
@@ -399,6 +401,7 @@ function EditShipmentForm({
     senderEmail: "",
     senderStreet: "",
     senderCity: "",
+    senderState: "",
     senderCountry: "",
     senderPostalCode: "",
     receiverName: "",
@@ -406,6 +409,7 @@ function EditShipmentForm({
     receiverEmail: "",
     receiverStreet: "",
     receiverCity: "",
+    receiverState: "",
     receiverCountry: "",
     receiverPostalCode: "",
     departureAt: "",
@@ -459,6 +463,7 @@ function EditShipmentForm({
           senderEmail: res.shipment.senderEmail ?? "",
           senderStreet: res.shipment.origin?.street ?? "",
           senderCity: res.shipment.origin?.city ?? "",
+          senderState: res.shipment.origin?.state ?? "",
           senderCountry: res.shipment.origin?.country ?? "",
           senderPostalCode: res.shipment.origin?.postalCode ?? "",
           receiverName: res.shipment.receiverName ?? "",
@@ -466,6 +471,7 @@ function EditShipmentForm({
           receiverEmail: res.shipment.receiverEmail ?? "",
           receiverStreet: res.shipment.destination?.street ?? "",
           receiverCity: res.shipment.destination?.city ?? "",
+          receiverState: res.shipment.destination?.state ?? "",
           receiverCountry: res.shipment.destination?.country ?? "",
           receiverPostalCode: res.shipment.destination?.postalCode ?? "",
           departureAt: res.shipment.departureAt ? new Date(res.shipment.departureAt).toISOString().slice(0, 16) : "",
@@ -520,12 +526,14 @@ function EditShipmentForm({
           origin: {
             street: form.senderStreet.trim(),
             city: form.senderCity.trim(),
+            state: form.senderState.trim() || null,
             country: form.senderCountry.trim(),
             postalCode: form.senderPostalCode.trim(),
           },
           destination: {
             street: form.receiverStreet.trim(),
             city: form.receiverCity.trim(),
+            state: form.receiverState.trim() || null,
             country: form.receiverCountry.trim(),
             postalCode: form.receiverPostalCode.trim(),
           },
@@ -662,6 +670,15 @@ function EditShipmentForm({
                       />
                     </div>
                     <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Sender State / Province / Region</label>
+                      <input
+                        placeholder="Lower Silesian"
+                        className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
+                        value={form.senderState}
+                        onChange={(e) => setForm((f) => ({ ...f, senderState: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Sender Postal Code</label>
                       <input
                         placeholder="51-644"
@@ -728,6 +745,15 @@ function EditShipmentForm({
                         className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
                         value={form.receiverCountry}
                         onChange={(e) => setForm((f) => ({ ...f, receiverCountry: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Receiver State / Province / Region</label>
+                      <input
+                        placeholder="England"
+                        className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
+                        value={form.receiverState}
+                        onChange={(e) => setForm((f) => ({ ...f, receiverState: e.target.value }))}
                       />
                     </div>
                     <div className="space-y-2">

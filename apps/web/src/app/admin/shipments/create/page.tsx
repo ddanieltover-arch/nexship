@@ -68,6 +68,7 @@ export default function CreateShipmentPage() {
     senderEmail: "",
     senderStreet: "",
     senderCity: "",
+    senderState: "",
     senderCountry: "",
     senderPostalCode: "",
     receiverName: "",
@@ -75,6 +76,7 @@ export default function CreateShipmentPage() {
     receiverEmail: "",
     receiverStreet: "",
     receiverCity: "",
+    receiverState: "",
     receiverCountry: "",
     receiverPostalCode: "",
     currentTime: new Date().toISOString().slice(0, 16),
@@ -126,12 +128,14 @@ export default function CreateShipmentPage() {
         origin: {
           street: form.senderStreet.trim(),
           city: form.senderCity.trim(),
+          state: form.senderState.trim() || null,
           country: form.senderCountry.trim(),
           postalCode: form.senderPostalCode.trim(),
         },
         destination: {
           street: form.receiverStreet.trim(),
           city: form.receiverCity.trim(),
+          state: form.receiverState.trim() || null,
           country: form.receiverCountry.trim(),
           postalCode: form.receiverPostalCode.trim(),
         },
@@ -247,6 +251,12 @@ export default function CreateShipmentPage() {
                 onChange={(e: any) => setForm({...form, senderCountry: e.target.value})}
               />
               <Input 
+                label="Sender State / Province / Region" 
+                placeholder="e.g., Lower Silesian" 
+                value={form.senderState}
+                onChange={(e: any) => setForm({...form, senderState: e.target.value})}
+              />
+              <Input 
                 label="Sender Postal Code" 
                 placeholder="e.g., 51-644" 
                 value={form.senderPostalCode}
@@ -301,6 +311,12 @@ export default function CreateShipmentPage() {
                 required
                 value={form.receiverCountry}
                 onChange={(e: any) => setForm({...form, receiverCountry: e.target.value})}
+              />
+              <Input 
+                label="Receiver State / Province / Region" 
+                placeholder="e.g., England" 
+                value={form.receiverState}
+                onChange={(e: any) => setForm({...form, receiverState: e.target.value})}
               />
               <Input 
                 label="Receiver Postal Code" 
