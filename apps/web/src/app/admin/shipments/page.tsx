@@ -397,11 +397,17 @@ function EditShipmentForm({
     senderName: "",
     senderPhone: "",
     senderEmail: "",
-    senderAddress: "",
+    senderStreet: "",
+    senderCity: "",
+    senderCountry: "",
+    senderPostalCode: "",
     receiverName: "",
     receiverPhone: "",
     receiverEmail: "",
-    receiverAddress: "",
+    receiverStreet: "",
+    receiverCity: "",
+    receiverCountry: "",
+    receiverPostalCode: "",
     departureAt: "",
     estimatedAt: "",
     notes: "",
@@ -442,8 +448,6 @@ function EditShipmentForm({
           { token: accessToken }
         );
         if (cancelled) return;
-        const toAddress = (a?: { street: string; city: string; state: string | null; country: string; postalCode: string } | null) =>
-          a ? [a.street, a.city, a.country, a.postalCode].filter(Boolean).join(", ") : "";
         setForm({
           shipmentType: res.shipment.shipmentType ?? "Air Freight",
           carrier: res.shipment.carrier ?? "NexShip Logistics",
@@ -453,11 +457,17 @@ function EditShipmentForm({
           senderName: res.shipment.senderName ?? "",
           senderPhone: res.shipment.senderPhone ?? "",
           senderEmail: res.shipment.senderEmail ?? "",
-          senderAddress: toAddress(res.shipment.origin),
+          senderStreet: res.shipment.origin?.street ?? "",
+          senderCity: res.shipment.origin?.city ?? "",
+          senderCountry: res.shipment.origin?.country ?? "",
+          senderPostalCode: res.shipment.origin?.postalCode ?? "",
           receiverName: res.shipment.receiverName ?? "",
           receiverPhone: res.shipment.receiverPhone ?? "",
           receiverEmail: res.shipment.receiverEmail ?? "",
-          receiverAddress: toAddress(res.shipment.destination),
+          receiverStreet: res.shipment.destination?.street ?? "",
+          receiverCity: res.shipment.destination?.city ?? "",
+          receiverCountry: res.shipment.destination?.country ?? "",
+          receiverPostalCode: res.shipment.destination?.postalCode ?? "",
           departureAt: res.shipment.departureAt ? new Date(res.shipment.departureAt).toISOString().slice(0, 16) : "",
           estimatedAt: res.shipment.estimatedAt ? new Date(res.shipment.estimatedAt).toISOString().slice(0, 16) : "",
           notes: res.shipment.notes ?? "",
@@ -475,17 +485,20 @@ function EditShipmentForm({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    const requiredAddressFields = [
+      form.senderStreet,
+      form.senderCity,
+      form.senderCountry,
+      form.receiverStreet,
+      form.receiverCity,
+      form.receiverCountry,
+    ];
+    if (requiredAddressFields.some((value) => !value.trim())) {
+      alert("Sender/receiver street, city, and country are required.");
+      return;
+    }
     setLoading(true);
     try {
-      const parseAddress = (addr: string) => {
-        const parts = addr.split(",");
-        return {
-          street: parts[0]?.trim() || "Main St",
-          city: parts[1]?.trim() || "London",
-          country: parts[2]?.trim() || "UK",
-          postalCode: parts[3]?.trim() || "SW1A",
-        };
-      };
       await apiFetch(`/shipments/${id}`, {
         method: "PATCH",
         token: accessToken,
@@ -504,8 +517,18 @@ function EditShipmentForm({
           departureAt: form.departureAt ? new Date(form.departureAt).toISOString() : null,
           estimatedAt: form.estimatedAt ? new Date(form.estimatedAt).toISOString() : null,
           notes: form.notes || undefined,
-          origin: parseAddress(form.senderAddress),
-          destination: parseAddress(form.receiverAddress),
+          origin: {
+            street: form.senderStreet.trim(),
+            city: form.senderCity.trim(),
+            country: form.senderCountry.trim(),
+            postalCode: form.senderPostalCode.trim(),
+          },
+          destination: {
+            street: form.receiverStreet.trim(),
+            city: form.receiverCity.trim(),
+            country: form.receiverCountry.trim(),
+            postalCode: form.receiverPostalCode.trim(),
+          },
         }),
       });
       setOpen(false);
@@ -607,14 +630,46 @@ function EditShipmentForm({
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Sender Address</label>
-                    <input
-                      placeholder="Street, City, Country, PostalCode"
-                      className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
-                      value={form.senderAddress}
-                      onChange={(e) => setForm((f) => ({ ...f, senderAddress: e.target.value }))}
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Sender Street</label>
+                      <input
+                        placeholder="123 Origin Hub"
+                        required
+                        className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
+                        value={form.senderStreet}
+                        onChange={(e) => setForm((f) => ({ ...f, senderStreet: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Sender City</label>
+                      <input
+                        placeholder="Wroclaw"
+                        required
+                        className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
+                        value={form.senderCity}
+                        onChange={(e) => setForm((f) => ({ ...f, senderCity: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Sender Country</label>
+                      <input
+                        placeholder="Poland"
+                        required
+                        className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
+                        value={form.senderCountry}
+                        onChange={(e) => setForm((f) => ({ ...f, senderCountry: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Sender Postal Code</label>
+                      <input
+                        placeholder="51-644"
+                        className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
+                        value={form.senderPostalCode}
+                        onChange={(e) => setForm((f) => ({ ...f, senderPostalCode: e.target.value }))}
+                      />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-3 gap-4">
@@ -644,14 +699,46 @@ function EditShipmentForm({
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Receiver Address</label>
-                    <input
-                      placeholder="Street, City, Country, PostalCode"
-                      className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
-                      value={form.receiverAddress}
-                      onChange={(e) => setForm((f) => ({ ...f, receiverAddress: e.target.value }))}
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Receiver Street</label>
+                      <input
+                        placeholder="456 Destination Rd"
+                        required
+                        className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
+                        value={form.receiverStreet}
+                        onChange={(e) => setForm((f) => ({ ...f, receiverStreet: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Receiver City</label>
+                      <input
+                        placeholder="London"
+                        required
+                        className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
+                        value={form.receiverCity}
+                        onChange={(e) => setForm((f) => ({ ...f, receiverCity: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Receiver Country</label>
+                      <input
+                        placeholder="UK"
+                        required
+                        className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
+                        value={form.receiverCountry}
+                        onChange={(e) => setForm((f) => ({ ...f, receiverCountry: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Receiver Postal Code</label>
+                      <input
+                        placeholder="SW1A 1AA"
+                        className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
+                        value={form.receiverPostalCode}
+                        onChange={(e) => setForm((f) => ({ ...f, receiverPostalCode: e.target.value }))}
+                      />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">

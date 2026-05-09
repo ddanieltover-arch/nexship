@@ -66,11 +66,17 @@ export default function CreateShipmentPage() {
     senderName: "",
     senderPhone: "",
     senderEmail: "",
-    senderAddress: "",
+    senderStreet: "",
+    senderCity: "",
+    senderCountry: "",
+    senderPostalCode: "",
     receiverName: "",
     receiverPhone: "",
     receiverEmail: "",
-    receiverAddress: "",
+    receiverStreet: "",
+    receiverCity: "",
+    receiverCountry: "",
+    receiverPostalCode: "",
     currentTime: new Date().toISOString().slice(0, 16),
     departureAt: "",
     estimatedAt: "",
@@ -86,21 +92,23 @@ export default function CreateShipmentPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const requiredAddressFields = [
+      form.senderStreet,
+      form.senderCity,
+      form.senderCountry,
+      form.receiverStreet,
+      form.receiverCity,
+      form.receiverCountry,
+    ];
+    if (requiredAddressFields.some((value) => !value.trim())) {
+      alert("Sender/receiver street, city, and country are required.");
+      return;
+    }
     setLoading(true);
     // #region agent log
     fetch('http://127.0.0.1:7481/ingest/ce8de074-f5d2-447d-ae80-ffb58579b81c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d0882'},body:JSON.stringify({sessionId:'2d0882',runId:'run3',hypothesisId:'H4',location:'web/admin/shipments/create/page.tsx:submit:start',message:'Create shipment submit started',data:{hasAccessToken:Boolean(accessToken),tokenLength:accessToken?.length ?? 0,userRole:user?.role ?? null},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
     try {
-      const parseAddress = (addr: string) => {
-        const parts = addr.split(",");
-        return {
-          street: parts[0]?.trim() || "Main St",
-          city: parts[1]?.trim() || "London",
-          country: parts[2]?.trim() || "UK",
-          postalCode: parts[3]?.trim() || "SW1A",
-        };
-      };
-
       const payload = {
         shipmentType: form.shipmentType,
         carrier: form.carrier,
@@ -115,8 +123,18 @@ export default function CreateShipmentPage() {
         paymentMethod: form.paymentMethod,
         departureAt: form.departureAt ? new Date(form.departureAt).toISOString() : undefined,
         estimatedAt: form.estimatedAt ? new Date(form.estimatedAt).toISOString() : undefined,
-        origin: parseAddress(form.senderAddress),
-        destination: parseAddress(form.receiverAddress),
+        origin: {
+          street: form.senderStreet.trim(),
+          city: form.senderCity.trim(),
+          country: form.senderCountry.trim(),
+          postalCode: form.senderPostalCode.trim(),
+        },
+        destination: {
+          street: form.receiverStreet.trim(),
+          city: form.receiverCity.trim(),
+          country: form.receiverCountry.trim(),
+          postalCode: form.receiverPostalCode.trim(),
+        },
       };
 
       await apiFetch("/shipments", {
@@ -208,10 +226,31 @@ export default function CreateShipmentPage() {
                 onChange={(e: any) => setForm({...form, senderEmail: e.target.value})}
               />
               <Input 
-                label="Sender Full Address*" 
-                placeholder="e.g., 123 Origin Hub, NY 10001" 
-                value={form.senderAddress}
-                onChange={(e: any) => setForm({...form, senderAddress: e.target.value})}
+                label="Sender Street Address*" 
+                placeholder="e.g., 123 Origin Hub" 
+                required
+                value={form.senderStreet}
+                onChange={(e: any) => setForm({...form, senderStreet: e.target.value})}
+              />
+              <Input 
+                label="Sender City*" 
+                placeholder="e.g., Wroclaw" 
+                required
+                value={form.senderCity}
+                onChange={(e: any) => setForm({...form, senderCity: e.target.value})}
+              />
+              <Input 
+                label="Sender Country*" 
+                placeholder="e.g., Poland" 
+                required
+                value={form.senderCountry}
+                onChange={(e: any) => setForm({...form, senderCountry: e.target.value})}
+              />
+              <Input 
+                label="Sender Postal Code" 
+                placeholder="e.g., 51-644" 
+                value={form.senderPostalCode}
+                onChange={(e: any) => setForm({...form, senderPostalCode: e.target.value})}
               />
             </div>
           </div>
@@ -243,10 +282,31 @@ export default function CreateShipmentPage() {
                 onChange={(e: any) => setForm({...form, receiverEmail: e.target.value})}
               />
               <Input 
-                label="Receiver Full Address*" 
-                placeholder="e.g., 456 Destination Rd, London, UK" 
-                value={form.receiverAddress}
-                onChange={(e: any) => setForm({...form, receiverAddress: e.target.value})}
+                label="Receiver Street Address*" 
+                placeholder="e.g., 456 Destination Rd" 
+                required
+                value={form.receiverStreet}
+                onChange={(e: any) => setForm({...form, receiverStreet: e.target.value})}
+              />
+              <Input 
+                label="Receiver City*" 
+                placeholder="e.g., London" 
+                required
+                value={form.receiverCity}
+                onChange={(e: any) => setForm({...form, receiverCity: e.target.value})}
+              />
+              <Input 
+                label="Receiver Country*" 
+                placeholder="e.g., UK" 
+                required
+                value={form.receiverCountry}
+                onChange={(e: any) => setForm({...form, receiverCountry: e.target.value})}
+              />
+              <Input 
+                label="Receiver Postal Code" 
+                placeholder="e.g., SW1A 1AA" 
+                value={form.receiverPostalCode}
+                onChange={(e: any) => setForm({...form, receiverPostalCode: e.target.value})}
               />
             </div>
           </div>

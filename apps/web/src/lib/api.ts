@@ -56,10 +56,10 @@ async function getAuthedUser(token?: string | null): Promise<SbUser | null> {
 function parseAddress(addr: string) {
   const parts = addr.split(",");
   return {
-    street: parts[0]?.trim() || "Main St",
-    city: parts[1]?.trim() || "London",
-    country: parts[2]?.trim() || "UK",
-    postalCode: parts[3]?.trim() || "0000",
+    street: parts[0]?.trim() || "",
+    city: parts[1]?.trim() || "",
+    country: parts[2]?.trim() || "",
+    postalCode: parts[3]?.trim() || "",
   };
 }
 
