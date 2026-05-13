@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/lib/auth";
 import { Menu, X, Globe, Package, Phone, Info, LayoutDashboard, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -25,7 +26,7 @@ export function SiteHeader() {
       <header className="border-b border-slate-800 bg-navy/80 backdrop-blur sticky top-0 z-50 transition-colors duration-300">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
           <Link href="/" className="flex items-center transition-transform hover:scale-105">
-            <img src="/logo/0.png" alt="Nexship" className="h-8 w-auto brightness-110" />
+            <Image src="/logo/0.png" alt="Nexship" width={120} height={32} className="h-8 w-auto brightness-110" />
           </Link>
           
           <div className="flex items-center gap-4">
@@ -71,7 +72,7 @@ export function SiteHeader() {
             className="fixed inset-0 z-[60] flex flex-col bg-navy p-6 md:hidden"
           >
             <div className="flex items-center justify-between">
-              <img src="/logo/0.png" alt="Nexship" className="h-8 w-auto" />
+              <Image src="/logo/0.png" alt="Nexship" width={120} height={32} className="h-8 w-auto" />
               <button onClick={() => setIsOpen(false)} className="p-2 text-slate-400">
                 <X className="h-8 w-8" />
               </button>

@@ -17,9 +17,10 @@ export function SmartsuppChat() {
   const key = process.env.NEXT_PUBLIC_SMARTSUPP_KEY;
 
   const isAdminPage = pathname?.startsWith("/admin");
-  if (isAdminPage) return null;
 
   useEffect(() => {
+    if (isAdminPage) return;
+
     if (!key) {
       console.warn("Smartsupp key is missing. Please set NEXT_PUBLIC_SMARTSUPP_KEY in your environment variables.");
       return;

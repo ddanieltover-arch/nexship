@@ -448,7 +448,7 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
     return () => {
       supabase?.removeChannel(channel);
     };
-  }, [data?.id]);
+  }, [data?.id, supabase]);
 
   if (error) return (
     <div className="flex flex-col items-center justify-center py-20 px-4">
