@@ -114,11 +114,13 @@ export default function ShipmentsPage() {
                 <td className="px-6 py-4 text-slate-400">
                   {s.weightKg ? `${s.weightKg} kg` : "-"}
                 </td>
-                <td className="px-6 py-4">
-                   <span className="rounded-full bg-slate-800 px-3 py-1 text-[10px] font-bold text-slate-300 border border-slate-700 uppercase">
-                    {s.status.replace(/_/g, " ")}
-                   </span>
-                </td>
+                 <td className="px-6 py-4">
+                    <span className="rounded-full bg-slate-800 px-3 py-1 text-[10px] font-bold text-slate-300 border border-slate-700">
+                      {s.status === "PICK_UP" || s.status === "PICKED_UP" ? "Picked Up" :
+                       s.status === "CUSTOMS_CLEARANCE" || s.status === "CUSTOMS" ? "Customs" :
+                       s.status.replace(/_/g, " ")}
+                    </span>
+                 </td>
               </tr>
             ))}
           </tbody>
@@ -141,7 +143,11 @@ export default function ShipmentsPage() {
                 {s.origin.city} → {s.destination.city} {s.weightKg ? `(${s.weightKg}kg)` : ""}
               </p>
             </div>
-            <span className="text-xs uppercase text-slate-400">{s.status}</span>
+            <span className="text-xs font-bold text-slate-400">
+              {s.status === "PICK_UP" || s.status === "PICKED_UP" ? "Picked Up" :
+               s.status === "CUSTOMS_CLEARANCE" || s.status === "CUSTOMS" ? "Customs" :
+               s.status.replace(/_/g, " ")}
+            </span>
           </li>
         ))}
       </ul>

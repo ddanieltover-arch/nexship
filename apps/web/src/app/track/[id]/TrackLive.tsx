@@ -233,10 +233,12 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
       }
 
       const formatStatus = (s: string) => {
-        if (s === "PICK_UP") return "Pick up";
+        if (s === "PICK_UP" || s === "PICKED_UP") return "Picked Up";
         if (s === "IN_TRANSIT") return "In Transit";
         if (s === "ON_HOLD") return "On Hold";
-        if (s === "CUSTOMS_CLEARANCE") return "Customs Clearance";
+        if (s === "CITY_PERMIT") return "City Permit";
+        if (s === "INSURANCE") return "Insurance";
+        if (s === "CUSTOMS" || s === "CUSTOMS_CLEARANCE") return "Customs";
         if (s === "OUT_FOR_DELIVERY") return "Out for Delivery";
         if (s === "DELIVERED") return "Delivered";
         if (s === "EXCEPTION_DELAYED") return "Exception / Delayed";
@@ -487,10 +489,12 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-teal"></span>
                     </span>
                     <p className="text-sm font-bold text-white uppercase">
-                        {data.status === "PICK_UP" ? "Pick up" :
+                        {data.status === "PICK_UP" || data.status === "PICKED_UP" ? "Picked Up" :
                          data.status === "IN_TRANSIT" ? "In Transit" :
                          data.status === "ON_HOLD" ? "On Hold" :
-                         data.status === "CUSTOMS_CLEARANCE" ? "Customs Clearance" :
+                         data.status === "CITY_PERMIT" ? "City Permit" :
+                         data.status === "INSURANCE" ? "Insurance" :
+                         data.status === "CUSTOMS" || data.status === "CUSTOMS_CLEARANCE" ? "Customs" :
                          data.status === "OUT_FOR_DELIVERY" ? "Out for Delivery" :
                          data.status === "DELIVERED" ? "Delivered" :
                          data.status === "EXCEPTION_DELAYED" ? "Exception / Delayed" :
@@ -556,10 +560,12 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
                             <div className="pb-8">
                                 <div className="flex items-center gap-3">
                                     <span className="text-xs font-black text-white uppercase tracking-widest">
-                                        {e.status === "PICK_UP" ? "Pick up" :
+                                        {e.status === "PICK_UP" || e.status === "PICKED_UP" ? "Picked Up" :
                                          e.status === "IN_TRANSIT" ? "In Transit" :
                                          e.status === "ON_HOLD" ? "On Hold" :
-                                         e.status === "CUSTOMS_CLEARANCE" ? "Customs Clearance" :
+                                         e.status === "CITY_PERMIT" ? "City Permit" :
+                                         e.status === "INSURANCE" ? "Insurance" :
+                                         e.status === "CUSTOMS" || e.status === "CUSTOMS_CLEARANCE" ? "Customs" :
                                          e.status === "OUT_FOR_DELIVERY" ? "Out for Delivery" :
                                          e.status === "DELIVERED" ? "Delivered" :
                                          e.status === "EXCEPTION_DELAYED" ? "Exception / Delayed" :

@@ -92,8 +92,18 @@ export default function AdminShipmentsPage() {
               className="w-full appearance-none rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-2.5 text-sm text-slate-300 focus:border-teal outline-none transition-all"
             >
               <option value="">All Statuses</option>
-              {["CREATED", "PICK_UP", "IN_TRANSIT", "ON_HOLD", "CUSTOMS_CLEARANCE", "OUT_FOR_DELIVERY", "DELIVERED", "EXCEPTION_DELAYED"].map(s => (
-                <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
+              {[
+                { value: "PICKED_UP", label: "Picked Up" },
+                { value: "IN_TRANSIT", label: "In Transit" },
+                { value: "ON_HOLD", label: "On Hold" },
+                { value: "CITY_PERMIT", label: "City Permit" },
+                { value: "INSURANCE", label: "Insurance" },
+                { value: "CUSTOMS", label: "Customs" },
+                { value: "OUT_FOR_DELIVERY", label: "Out for Delivery" },
+                { value: "DELIVERED", label: "Delivered" },
+                { value: "EXCEPTION_DELAYED", label: "Exception / Delayed" },
+              ].map(s => (
+                <option key={s.value} value={s.value}>{s.label}</option>
               ))}
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 pointer-events-none" />
@@ -131,10 +141,12 @@ export default function AdminShipmentsPage() {
                 </td>
                 <td className="px-6 py-8">
                    <span className="rounded-full bg-[#dbeafe] dark:bg-blue-900/30 px-3 py-1.5 text-[11px] font-bold text-[#1e40af] dark:text-blue-300">
-                    {s.status === "PICK_UP" ? "Pick up" :
+                    {s.status === "PICK_UP" || s.status === "PICKED_UP" ? "Picked Up" :
                       s.status === "IN_TRANSIT" ? "In Transit" :
                       s.status === "ON_HOLD" ? "On Hold" :
-                      s.status === "CUSTOMS_CLEARANCE" ? "Customs Clearance" :
+                      s.status === "CITY_PERMIT" ? "City Permit" :
+                      s.status === "INSURANCE" ? "Insurance" :
+                      s.status === "CUSTOMS" || s.status === "CUSTOMS_CLEARANCE" ? "Customs" :
                       s.status === "OUT_FOR_DELIVERY" ? "Out for Delivery" :
                       s.status === "DELIVERED" ? "Delivered" :
                       s.status === "EXCEPTION_DELAYED" ? "Exception / Delayed" :
@@ -288,16 +300,19 @@ function UpdateStatusForm({
                       onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
                       className="w-full appearance-none rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
                     >
-                      {["PICK_UP", "IN_TRANSIT", "ON_HOLD", "CUSTOMS_CLEARANCE", "OUT_FOR_DELIVERY", "DELIVERED", "EXCEPTION_DELAYED"].map((s) => (
-                        <option key={s} value={s}>
-                          {s === "PICK_UP" ? "Pick up" :
-                           s === "IN_TRANSIT" ? "In Transit" :
-                           s === "ON_HOLD" ? "On Hold" :
-                           s === "CUSTOMS_CLEARANCE" ? "Customs Clearance" :
-                           s === "OUT_FOR_DELIVERY" ? "Out for Delivery" :
-                           s === "DELIVERED" ? "Delivered" :
-                           s === "EXCEPTION_DELAYED" ? "Exception / Delayed" :
-                           s.replace(/_/g, " ")}
+                      {[
+                        { value: "PICKED_UP", label: "Picked Up" },
+                        { value: "IN_TRANSIT", label: "In Transit" },
+                        { value: "ON_HOLD", label: "On Hold" },
+                        { value: "CITY_PERMIT", label: "City Permit" },
+                        { value: "INSURANCE", label: "Insurance" },
+                        { value: "CUSTOMS", label: "Customs" },
+                        { value: "OUT_FOR_DELIVERY", label: "Out for Delivery" },
+                        { value: "DELIVERED", label: "Delivered" },
+                        { value: "EXCEPTION_DELAYED", label: "Exception / Delayed" },
+                      ].map((s) => (
+                        <option key={s.value} value={s.value}>
+                          {s.label}
                         </option>
                       ))}
                     </select>
@@ -396,6 +411,10 @@ function EditShipmentForm({
     paymentMethod: "Bank Transfer",
     description: "",
     weightKg: "",
+    volume: "",
+    height: "",
+    length: "",
+    width: "",
     senderName: "",
     senderPhone: "",
     senderEmail: "",
@@ -432,6 +451,10 @@ function EditShipmentForm({
           shipment: {
             description?: string | null;
             weightKg?: number | null;
+            volume?: number | null;
+            height?: number | null;
+            length?: number | null;
+            width?: number | null;
             shipmentType?: string | null;
             carrier?: string | null;
             paymentMethod?: string | null;
@@ -458,6 +481,10 @@ function EditShipmentForm({
           paymentMethod: res.shipment.paymentMethod ?? "Bank Transfer",
           description: res.shipment.description ?? "",
           weightKg: res.shipment.weightKg != null ? String(res.shipment.weightKg) : "",
+          volume: res.shipment.volume != null ? String(res.shipment.volume) : "",
+          height: res.shipment.height != null ? String(res.shipment.height) : "",
+          length: res.shipment.length != null ? String(res.shipment.length) : "",
+          width: res.shipment.width != null ? String(res.shipment.width) : "",
           senderName: res.shipment.senderName ?? "",
           senderPhone: res.shipment.senderPhone ?? "",
           senderEmail: res.shipment.senderEmail ?? "",
@@ -767,7 +794,7 @@ function EditShipmentForm({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Weight (kg)</label>
                       <input
@@ -779,12 +806,62 @@ function EditShipmentForm({
                       />
                     </div>
                     <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Volume</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
+                        value={form.volume}
+                        onChange={(e) => setForm((f) => ({ ...f, volume: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Height</label>
+                      <input
+                        type="number"
+                        className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
+                        value={form.height}
+                        onChange={(e) => setForm((f) => ({ ...f, height: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Length</label>
+                      <input
+                        type="number"
+                        className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
+                        value={form.length}
+                        onChange={(e) => setForm((f) => ({ ...f, length: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Width</label>
+                      <input
+                        type="number"
+                        className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
+                        value={form.width}
+                        onChange={(e) => setForm((f) => ({ ...f, width: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Departure</label>
                       <input
                         type="datetime-local"
                         className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all [color-scheme:dark]"
                         value={form.departureAt}
                         onChange={(e) => setForm((f) => ({ ...f, departureAt: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Estimated Delivery</label>
+                      <input
+                        type="datetime-local"
+                        className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all [color-scheme:dark]"
+                        value={form.estimatedAt}
+                        onChange={(e) => setForm((f) => ({ ...f, estimatedAt: e.target.value }))}
                       />
                     </div>
                   </div>
@@ -795,15 +872,6 @@ function EditShipmentForm({
                         className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all"
                         value={form.paymentMethod}
                         onChange={(e) => setForm((f) => ({ ...f, paymentMethod: e.target.value }))}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Estimated Delivery</label>
-                      <input
-                        type="datetime-local"
-                        className="w-full rounded-2xl border border-slate-700 bg-slate-900/50 px-4 py-3 text-sm text-white focus:border-teal outline-none transition-all [color-scheme:dark]"
-                        value={form.estimatedAt}
-                        onChange={(e) => setForm((f) => ({ ...f, estimatedAt: e.target.value }))}
                       />
                     </div>
                   </div>

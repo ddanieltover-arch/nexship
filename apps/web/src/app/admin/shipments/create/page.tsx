@@ -83,7 +83,10 @@ export default function CreateShipmentPage() {
     departureAt: "",
     estimatedAt: "",
     weightKg: "",
-    sizeCm: "",
+    volume: "",
+    height: "",
+    length: "",
+    width: "",
     paymentMethod: "Bank Transfer",
     description: "",
   });
@@ -122,6 +125,10 @@ export default function CreateShipmentPage() {
         receiverEmail: form.receiverEmail,
         description: form.description,
         weightKg: form.weightKg ? parseFloat(form.weightKg) : undefined,
+        volume: form.volume ? parseFloat(form.volume) : undefined,
+        height: form.height ? parseFloat(form.height) : undefined,
+        length: form.length ? parseFloat(form.length) : undefined,
+        width: form.width ? parseFloat(form.width) : undefined,
         paymentMethod: form.paymentMethod,
         departureAt: form.departureAt ? new Date(form.departureAt).toISOString() : undefined,
         estimatedAt: form.estimatedAt ? new Date(form.estimatedAt).toISOString() : undefined,
@@ -368,10 +375,34 @@ export default function CreateShipmentPage() {
                 onChange={(e: any) => setForm({...form, weightKg: e.target.value})}
               />
               <Input 
-                label="Size (cm)*" 
+                label="Volume*" 
+                placeholder="e.g., 0.5" 
+                type="number"
+                value={form.volume}
+                onChange={(e: any) => setForm({...form, volume: e.target.value})}
+              />
+            </div>
+            <div className="grid gap-6 md:grid-cols-3">
+              <Input 
+                label="Height*" 
                 placeholder="e.g., 10" 
-                value={form.sizeCm}
-                onChange={(e: any) => setForm({...form, sizeCm: e.target.value})}
+                type="number"
+                value={form.height}
+                onChange={(e: any) => setForm({...form, height: e.target.value})}
+              />
+              <Input 
+                label="Length*" 
+                placeholder="e.g., 20" 
+                type="number"
+                value={form.length}
+                onChange={(e: any) => setForm({...form, length: e.target.value})}
+              />
+              <Input 
+                label="Width*" 
+                placeholder="e.g., 15" 
+                type="number"
+                value={form.width}
+                onChange={(e: any) => setForm({...form, width: e.target.value})}
               />
             </div>
             <div className="grid gap-6 md:grid-cols-1">

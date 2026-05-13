@@ -40,9 +40,16 @@ function getBaseTemplate(content: string) {
           .footer-info { margin-bottom: 16px; }
           .footer-links a { color: ${THEME.teal}; text-decoration: none; margin: 0 8px; font-weight: 600; }
           .status-badge { display: inline-block; padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
-          .status-CREATED { background: #dcfce7; color: #166534; }
+          .status-CREATED { background: #f1f5f9; color: #475569; }
+          .status-PICK_UP, .status-PICKED_UP { background: #dcfce7; color: #166534; }
           .status-IN_TRANSIT { background: #e0f2fe; color: #075985; }
+          .status-ON_HOLD { background: #fef9c3; color: #854d0e; }
+          .status-CITY_PERMIT { background: #fae8ff; color: #86198f; }
+          .status-INSURANCE { background: #ede9fe; color: #5b21b6; }
+          .status-CUSTOMS, .status-CUSTOMS_CLEARANCE { background: #ffedd5; color: #9a3412; }
+          .status-OUT_FOR_DELIVERY { background: #f0f9ff; color: #0c4a6e; }
           .status-DELIVERED { background: #dcfce7; color: #166534; }
+          .status-EXCEPTION_DELAYED { background: #fee2e2; color: #991b1b; }
         </style>
       </head>
       <body>
@@ -166,7 +173,11 @@ export async function sendShipmentStatusUpdatedEmail(payload: {
     
     <div class="tracking-box">
       <div class="tracking-label">Current Status</div>
-      <div class="status-badge status-${payload.status}">${payload.status.replace(/_/g, " ")}</div>
+      <div class="status-badge status-${payload.status}">
+        ${payload.status === "PICK_UP" || payload.status === "PICKED_UP" ? "Picked Up" :
+          payload.status === "CUSTOMS_CLEARANCE" || payload.status === "CUSTOMS" ? "Customs" :
+          payload.status.replace(/_/g, " ")}
+      </div>
       <p style="margin: 12px 0 0 0; font-weight: 600; color: ${THEME.navy};">${payload.description}</p>
     </div>
     

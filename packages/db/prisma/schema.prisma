@@ -70,6 +70,10 @@ model Shipment {
   shipmentType  String?        @default("Air Freight")
   carrier       String?        @default("NexShip Logistics")
   paymentMethod String?        @default("Bank Transfer")
+  volume        Float?
+  height        Float?
+  length        Float?
+  width         Float?
   
   senderName    String?
   senderPhone   String?
