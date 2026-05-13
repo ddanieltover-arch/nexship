@@ -51,7 +51,6 @@ export function SmartsuppChat() {
     }
 
     const isAdmin = user?.role === "ADMIN" || user?.role === "STAFF";
-    const isAdminPage = pathname?.startsWith("/admin");
 
     if (isAdmin || isAdminPage) {
       window.smartsupp("chat:hide");

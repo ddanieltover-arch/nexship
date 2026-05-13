@@ -448,7 +448,8 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
     return () => {
       supabase?.removeChannel(channel);
     };
-  }, [data?.id, supabase]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.id]);
 
   if (error) return (
     <div className="flex flex-col items-center justify-center py-20 px-4">
