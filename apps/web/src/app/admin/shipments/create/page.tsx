@@ -109,20 +109,25 @@ export default function CreateShipmentPage() {
       alert("Sender/receiver street, city, and country are required.");
       return;
     }
+    if (!form.receiverEmail.trim()) {
+      alert("Receiver email is required for shipment alerts.");
+      return;
+    }
+    if (!form.senderName.trim() || !form.receiverName.trim()) {
+      alert("Sender and receiver names are required.");
+      return;
+    }
     setLoading(true);
-    // #region agent log
-    fetch('http://127.0.0.1:7481/ingest/ce8de074-f5d2-447d-ae80-ffb58579b81c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d0882'},body:JSON.stringify({sessionId:'2d0882',runId:'run3',hypothesisId:'H4',location:'web/admin/shipments/create/page.tsx:submit:start',message:'Create shipment submit started',data:{hasAccessToken:Boolean(accessToken),tokenLength:accessToken?.length ?? 0,userRole:user?.role ?? null},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     try {
       const payload = {
         shipmentType: form.shipmentType,
         carrier: form.carrier,
-        senderName: form.senderName,
-        senderPhone: form.senderPhone,
-        senderEmail: form.senderEmail,
-        receiverName: form.receiverName,
-        receiverPhone: form.receiverPhone,
-        receiverEmail: form.receiverEmail,
+        senderName: form.senderName.trim(),
+        senderPhone: form.senderPhone.trim(),
+        senderEmail: form.senderEmail.trim() || undefined,
+        receiverName: form.receiverName.trim(),
+        receiverPhone: form.receiverPhone.trim(),
+        receiverEmail: form.receiverEmail.trim(),
         description: form.description,
         weightKg: form.weightKg ? parseFloat(form.weightKg) : undefined,
         volume: form.volume ? parseFloat(form.volume) : undefined,
@@ -137,14 +142,14 @@ export default function CreateShipmentPage() {
           city: form.senderCity.trim(),
           state: form.senderState.trim() || null,
           country: form.senderCountry.trim(),
-          postalCode: form.senderPostalCode.trim(),
+          postalCode: form.senderPostalCode.trim() || "",
         },
         destination: {
           street: form.receiverStreet.trim(),
           city: form.receiverCity.trim(),
           state: form.receiverState.trim() || null,
           country: form.receiverCountry.trim(),
-          postalCode: form.receiverPostalCode.trim(),
+          postalCode: form.receiverPostalCode.trim() || "",
         },
       };
 
@@ -153,16 +158,10 @@ export default function CreateShipmentPage() {
         token: accessToken!,
         body: JSON.stringify(payload),
       });
-      // #region agent log
-      fetch('http://127.0.0.1:7481/ingest/ce8de074-f5d2-447d-ae80-ffb58579b81c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d0882'},body:JSON.stringify({sessionId:'2d0882',runId:'run3',hypothesisId:'H5',location:'web/admin/shipments/create/page.tsx:submit:success',message:'Create shipment request succeeded',data:{},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
 
       setSuccess(true);
       setTimeout(() => router.push("/admin/shipments"), 2000);
     } catch (err) {
-      // #region agent log
-      fetch('http://127.0.0.1:7481/ingest/ce8de074-f5d2-447d-ae80-ffb58579b81c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d0882'},body:JSON.stringify({sessionId:'2d0882',runId:'run3',hypothesisId:'H5',location:'web/admin/shipments/create/page.tsx:submit:error',message:'Create shipment request failed',data:{error:err instanceof Error ? err.message : 'unknown'},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       alert(err instanceof Error ? err.message : "Creation failed");
     } finally {
       setLoading(false);
@@ -219,6 +218,7 @@ export default function CreateShipmentPage() {
             <div className="grid gap-6 md:grid-cols-2">
               <Input 
                 label="Sender Name*" 
+                required
                 placeholder="e.g., John Doe" 
                 value={form.senderName}
                 onChange={(e: any) => setForm({...form, senderName: e.target.value})}
@@ -281,6 +281,7 @@ export default function CreateShipmentPage() {
             <div className="grid gap-6 md:grid-cols-2">
               <Input 
                 label="Receiver Name*" 
+                required
                 placeholder="e.g., Jane Smith" 
                 value={form.receiverName}
                 onChange={(e: any) => setForm({...form, receiverName: e.target.value})}
@@ -293,7 +294,8 @@ export default function CreateShipmentPage() {
               />
               <Input 
                 label="Receiver Email* (Auto-Account & Alerts)" 
-                type="email" 
+                type="email"
+                required
                 placeholder="customer@example.com" 
                 value={form.receiverEmail}
                 onChange={(e: any) => setForm({...form, receiverEmail: e.target.value})}

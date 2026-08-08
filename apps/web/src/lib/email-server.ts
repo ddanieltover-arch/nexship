@@ -1,14 +1,10 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT || 465),
-  secure: Number(process.env.SMTP_PORT) === 465,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+const FROM = process.env.RESEND_FROM || "Nexship Logistics <support@nexships.com>";
+/** Inbox that receives all admin/CC notification copies */
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "support@nexships.com";
 
 const THEME = {
   navy: "#0f172a",
@@ -18,7 +14,6 @@ const THEME = {
 };
 
 const LOGO_URL = "https://nexships.com/logo/0.png";
-const SUPPORT_EMAIL = "support@nexships.com";
 
 function getBaseTemplate(content: string) {
   return `
@@ -80,13 +75,29 @@ function getBaseTemplate(content: string) {
 }
 
 export async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("RESEND_API_KEY not set; skipping email");
+    return { success: false, error: "RESEND_API_KEY not configured" };
+  }
+
+  if (!to?.trim()) {
+    console.warn("Skipping email: empty recipient");
+    return { success: false, error: "Empty recipient" };
+  }
+
   try {
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM,
+    const { error } = await resend.emails.send({
+      from: FROM,
       to,
       subject,
       html,
     });
+
+    if (error) {
+      console.error("Failed to send email:", error);
+      return { success: false, error };
+    }
+
     return { success: true };
   } catch (error) {
     console.error("Failed to send email:", error);
@@ -155,7 +166,7 @@ export async function sendShipmentCreatedEmail(payload: {
   await Promise.all([
     sendEmail({ to: payload.receiverEmail, subject, html: getBaseTemplate(receiverContent) }),
     sendEmail({ to: payload.senderEmail, subject, html: getBaseTemplate(senderContent) }),
-    sendEmail({ to: SUPPORT_EMAIL, subject: `[ADMIN] New Shipment Created: ${payload.trackingId}`, html: getBaseTemplate(adminContent) }),
+    sendEmail({ to: ADMIN_EMAIL, subject: `[ADMIN] New Shipment Created: ${payload.trackingId}`, html: getBaseTemplate(adminContent) }),
   ]);
 
   return { success: true };
@@ -163,7 +174,8 @@ export async function sendShipmentCreatedEmail(payload: {
 
 export async function sendShipmentStatusUpdatedEmail(payload: {
   trackingId: string;
-  receiverEmail: string;
+  receiverEmail?: string | null;
+  senderEmail?: string | null;
   status: string;
   description: string;
 }) {
@@ -191,10 +203,47 @@ export async function sendShipmentStatusUpdatedEmail(payload: {
   const html = getBaseTemplate(content);
   const subject = `[NexShip] Status Update for ${payload.trackingId}`;
 
-  // Notify receiver and CC support
   await Promise.all([
-    sendEmail({ to: payload.receiverEmail, subject, html }),
-    sendEmail({ to: SUPPORT_EMAIL, subject: `[CC] Status Update: ${payload.trackingId}`, html }),
+    sendEmail({ to: payload.receiverEmail ?? "", subject, html }),
+    sendEmail({ to: payload.senderEmail ?? "", subject, html }),
+    sendEmail({ to: ADMIN_EMAIL, subject: `[CC] Status Update: ${payload.trackingId}`, html }),
+  ]);
+
+  return { success: true };
+}
+
+export async function sendShipmentUpdatedEmail(payload: {
+  trackingId: string;
+  senderEmail?: string | null;
+  senderName?: string | null;
+  receiverEmail?: string | null;
+  receiverName?: string | null;
+  status?: string | null;
+}) {
+  const subject = `[NexShip] Shipment Details Updated: ${payload.trackingId}`;
+  const content = `
+    <h1 style="margin-top: 0; font-size: 24px; font-weight: 800;">Shipment Details Updated</h1>
+    <p>Details for shipment <strong>${payload.trackingId}</strong> were updated by our logistics team.</p>
+    <div class="tracking-box">
+      <div class="tracking-label">Current Status</div>
+      <p style="margin: 0; font-weight: 700;">${(payload.status ?? "CREATED").replace(/_/g, " ")}</p>
+      <p style="margin: 12px 0 0 0;"><strong>Sender:</strong> ${payload.senderName || "—"} (${payload.senderEmail || "—"})</p>
+      <p style="margin: 4px 0 0 0;"><strong>Receiver:</strong> ${payload.receiverName || "—"} (${payload.receiverEmail || "—"})</p>
+    </div>
+    <div style="text-align: center; margin-top: 32px;">
+      <a href="https://nexships.com/track/${payload.trackingId}" class="button">Track Shipment</a>
+    </div>
+  `;
+  const html = getBaseTemplate(content);
+
+  await Promise.all([
+    sendEmail({ to: payload.receiverEmail ?? "", subject, html }),
+    sendEmail({ to: payload.senderEmail ?? "", subject, html }),
+    sendEmail({
+      to: ADMIN_EMAIL,
+      subject: `[ADMIN] Shipment Updated: ${payload.trackingId}`,
+      html,
+    }),
   ]);
 
   return { success: true };
@@ -245,7 +294,7 @@ export async function sendQuoteRequestEmail(payload: {
   `;
 
   await Promise.all([
-    sendEmail({ to: SUPPORT_EMAIL, subject: `[ADMIN] ${subject}`, html: getBaseTemplate(adminContent) }),
+    sendEmail({ to: ADMIN_EMAIL, subject: `[ADMIN] ${subject}`, html: getBaseTemplate(adminContent) }),
     sendEmail({ to: payload.email, subject: `[NexShip] We've received your quote request`, html: getBaseTemplate(clientContent) }),
   ]);
 
@@ -292,7 +341,7 @@ export async function sendContactFormEmail(payload: {
   `;
 
   await Promise.all([
-    sendEmail({ to: SUPPORT_EMAIL, subject: `[ADMIN] ${emailSubject}`, html: getBaseTemplate(adminContent) }),
+    sendEmail({ to: ADMIN_EMAIL, subject: `[ADMIN] ${emailSubject}`, html: getBaseTemplate(adminContent) }),
     sendEmail({ to: payload.email, subject: `[NexShip] Message Received: ${payload.subject}`, html: getBaseTemplate(userContent) }),
   ]);
 

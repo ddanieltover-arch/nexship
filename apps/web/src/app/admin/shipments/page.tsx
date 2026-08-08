@@ -530,6 +530,10 @@ function EditShipmentForm({
       alert("Sender/receiver street, city, and country are required.");
       return;
     }
+    if (!form.receiverEmail.trim()) {
+      alert("Receiver email is required for notification emails.");
+      return;
+    }
     setLoading(true);
     try {
       await apiFetch(`/shipments/${id}`, {
@@ -540,7 +544,11 @@ function EditShipmentForm({
           carrier: form.carrier || undefined,
           paymentMethod: form.paymentMethod || undefined,
           description: form.description || undefined,
-          weightKg: form.weightKg ? Number(form.weightKg) : undefined,
+          weightKg: form.weightKg ? Number(form.weightKg) : null,
+          volume: form.volume ? Number(form.volume) : null,
+          height: form.height ? Number(form.height) : null,
+          length: form.length ? Number(form.length) : null,
+          width: form.width ? Number(form.width) : null,
           senderName: form.senderName || undefined,
           senderPhone: form.senderPhone || undefined,
           senderEmail: form.senderEmail || undefined,
@@ -555,14 +563,14 @@ function EditShipmentForm({
             city: form.senderCity.trim(),
             state: form.senderState.trim() || null,
             country: form.senderCountry.trim(),
-            postalCode: form.senderPostalCode.trim(),
+            postalCode: form.senderPostalCode.trim() || "",
           },
           destination: {
             street: form.receiverStreet.trim(),
             city: form.receiverCity.trim(),
             state: form.receiverState.trim() || null,
             country: form.receiverCountry.trim(),
-            postalCode: form.receiverPostalCode.trim(),
+            postalCode: form.receiverPostalCode.trim() || "",
           },
         }),
       });

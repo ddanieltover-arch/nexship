@@ -66,7 +66,15 @@ After seeding, sign in at `/login` with `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWOR
 
 ## Email
 
-When `RESEND_API_KEY` is set, status changes trigger a simple shipment email via the Resend HTTP API. Without it, email sending is skipped (in-app notifications still apply).
+All transactional mail (shipment created, status updates, quote requests, contact form) goes through **Resend** from `apps/web` (`/api/send-email` → `email-server.ts`).
+
+Set on the **web** host (Vercel / local `.env`):
+
+- `RESEND_API_KEY` — required to send
+- `RESEND_FROM` — verified sender, e.g. `Nexship Logistics <support@nexships.com>`
+- `ADMIN_EMAIL` — inbox for admin/CC notification copies (default `support@nexships.com`)
+
+Without `RESEND_API_KEY`, sending is skipped (in-app notifications still apply).
 
 ## Deploy (Vercel web + API elsewhere)
 
@@ -88,6 +96,8 @@ The **Next.js UI** (`apps/web`) is what you deploy to **Vercel**. The **Fastify 
    | `NEXT_PUBLIC_API_URL` | Public REST base, e.g. `https://api.yourdomain.com/api/v1` |
    | `NEXT_PUBLIC_WS_URL` | Socket.io origin (no path), e.g. `https://api.yourdomain.com` |
    | `NEXT_PUBLIC_MAPBOX_TOKEN` | Optional; map features |
+   | `RESEND_API_KEY` | Resend API key for transactional emails |
+   | `RESEND_FROM` | Verified From address, e.g. `Nexship Logistics <support@nexships.com>` |
    | `INTERNAL_API_URL` | Optional; absolute API base for server-side `fetch` if you do not rely on public URL alone |
    | `API_REWRITE_BASE_URL` | Optional; same as API base if you proxy same-origin `/api/v1` via Next rewrites without setting `NEXT_PUBLIC_API_URL` |
 
@@ -103,7 +113,7 @@ Deploy `apps/api` (or the Docker/merged image you prefer) with at least:
 
 - `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`
 - `PORT` (host-provided)
-- Optional: `REDIS_URL`, `RESEND_*`
+- Optional: `REDIS_URL`
 
 Allow **CORS** from your Vercel domain (Fastify currently uses permissive CORS; tighten for production). Socket clients use `NEXT_PUBLIC_WS_URL` and path `/ws/socket.io`.
 

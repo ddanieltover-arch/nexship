@@ -1,8 +1,11 @@
 import type { NextConfig } from "next";
+import { loadEnvConfig } from "@next/env";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Monorepo: load root `.env` so RESEND_* (and shared secrets) reach the Next server.
+loadEnvConfig(path.join(__dirname, "../.."));
 
 const nextConfig: NextConfig = {
   transpilePackages: [],

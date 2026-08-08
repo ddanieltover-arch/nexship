@@ -67,14 +67,28 @@ function mkid() {
   return crypto.randomUUID().replace(/-/g, "");
 }
 
+function emailApiBase() {
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return window.location.origin;
+  }
+  const site = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (site) return site.replace(/\/$/, "");
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3010";
+}
+
 async function queueEmail(eventType: string, payload: Record<string, unknown>) {
   try {
-    // Call our internal Next.js API route to send the email securely on the server
-    await fetch("/api/send-email", {
+    // Server route holds RESEND_API_KEY — never call Resend from the browser.
+    const res = await fetch(`${emailApiBase()}/api/send-email`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ eventType, payload }),
     });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      console.error(`Email API failed (${eventType}):`, res.status, detail);
+    }
   } catch (error) {
     console.error("Failed to trigger email:", error);
   }
@@ -176,6 +190,14 @@ async function supabaseApiFetch<T>(
     const destIn = body?.destination as any;
     const originPayload = originIn?.street ? originIn : parseAddress(String(originIn ?? ""));
     const destinationPayload = destIn?.street ? destIn : parseAddress(String(destIn ?? ""));
+    originPayload.postalCode = String(originPayload.postalCode ?? "");
+    destinationPayload.postalCode = String(destinationPayload.postalCode ?? "");
+    if (!originPayload.street || !originPayload.city || !originPayload.country) {
+      throw new Error("Origin street, city, and country are required");
+    }
+    if (!destinationPayload.street || !destinationPayload.city || !destinationPayload.country) {
+      throw new Error("Destination street, city, and country are required");
+    }
     const now = new Date().toISOString();
 
     let targetCustomerId = authed.id;
@@ -229,6 +251,8 @@ async function supabaseApiFetch<T>(
     }
 
     const trackingId = `NXSP${Math.floor(100000000 + Math.random() * 900000000)}`;
+    const senderEmail = (body?.senderEmail as string | undefined) || authed.email || null;
+    const receiverEmail = (body?.receiverEmail as string | undefined) || null;
     const insertPayload = {
       id: mkid(),
       trackingId,
@@ -245,12 +269,12 @@ async function supabaseApiFetch<T>(
       shipmentType: body?.shipmentType ?? null,
       carrier: body?.carrier ?? null,
       paymentMethod: body?.paymentMethod ?? null,
-      senderName: body?.senderName ?? null,
+      senderName: body?.senderName ?? authed.user_metadata?.name ?? null,
       senderPhone: body?.senderPhone ?? null,
-      senderEmail: body?.senderEmail ?? null,
+      senderEmail,
       receiverName: body?.receiverName ?? null,
       receiverPhone: body?.receiverPhone ?? null,
-      receiverEmail: body?.receiverEmail ?? null,
+      receiverEmail,
       departureAt: body?.departureAt ?? null,
       estimatedAt: body?.estimatedAt ?? null,
       notes: body?.notes ?? null,
@@ -338,6 +362,14 @@ async function supabaseApiFetch<T>(
     }
     const { data: shipment, error } = await sb.from("Shipment").update(patch).eq("id", id).select().single();
     if (error) throw new Error(error.message);
+    await queueEmail("shipment_updated", {
+      trackingId: shipment.trackingId,
+      senderEmail: shipment.senderEmail,
+      senderName: shipment.senderName,
+      receiverEmail: shipment.receiverEmail,
+      receiverName: shipment.receiverName,
+      status: shipment.status,
+    });
     return { shipment } as T;
   }
 
@@ -399,6 +431,7 @@ async function supabaseApiFetch<T>(
       shipmentId: shipment.id,
       trackingId: shipment.trackingId,
       status,
+      senderEmail: shipment.senderEmail,
       receiverEmail: shipment.receiverEmail,
       description: body?.description ?? `Status updated to ${status}`,
     });
@@ -484,40 +517,47 @@ async function supabaseApiFetch<T>(
   }
 
   if (p === "/contact" && method === "POST") {
+    if (!body?.email || !String(body.email).trim()) {
+      throw new Error("Email is required");
+    }
+    if (!body?.name || !String(body.name).trim()) {
+      throw new Error("Name is required");
+    }
+
     const now = new Date().toISOString();
-    const { error } = await sb.from("LogisticsNews").insert({
+    // Persist inquiry for admin review — do not block email delivery on storage errors.
+    const { error: storeError } = await sb.from("LogisticsNews").insert({
       id: mkid(),
-      title: body?.origin ? `Quote: ${body.origin} to ${body.destination}` : `Contact: ${body?.subject ?? "General Inquiry"}`,
+      title: body?.origin
+        ? `Quote: ${body.origin} to ${body.destination}`
+        : `Contact: ${body?.subject ?? "General Inquiry"}`,
       content: `${body?.message ?? body?.cargoDetails ?? ""}`,
-      source: String(body?.email ?? ""),
+      source: String(body.email ?? ""),
       url: null,
       imageUrl: null,
       published: false,
       updatedAt: now,
     });
-    if (error) throw new Error(error.message);
+    if (storeError) {
+      console.error("Failed to store contact/quote inquiry:", storeError.message);
+    }
 
-    // Trigger emails
-    if (body) {
-      if (body.origin) {
-        // It's a quote request (from QuoteModal)
-        await queueEmail("quote_requested", {
-          name: String(body.name ?? "User"),
-          email: String(body.email ?? ""),
-          company: String(body.company ?? ""),
-          origin: String(body.origin ?? ""),
-          destination: String(body.destination ?? ""),
-          cargoDetails: String(body.cargoDetails || body.message || "")
-        });
-      } else {
-        // It's a general contact inquiry
-        await queueEmail("contact_form_submitted", {
-          name: String(body.name ?? "User"),
-          email: String(body.email ?? ""),
-          subject: String(body.subject || "General Inquiry"),
-          message: String(body.message ?? "")
-        });
-      }
+    if (body.origin) {
+      await queueEmail("quote_requested", {
+        name: String(body.name ?? "User"),
+        email: String(body.email ?? ""),
+        company: String(body.company ?? ""),
+        origin: String(body.origin ?? ""),
+        destination: String(body.destination ?? ""),
+        cargoDetails: String(body.cargoDetails || body.message || ""),
+      });
+    } else {
+      await queueEmail("contact_form_submitted", {
+        name: String(body.name ?? "User"),
+        email: String(body.email ?? ""),
+        subject: String(body.subject || "General Inquiry"),
+        message: String(body.message ?? ""),
+      });
     }
 
     return { ok: true } as T;
