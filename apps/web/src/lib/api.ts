@@ -500,19 +500,40 @@ async function supabaseApiFetch<T>(
       .eq("trackingId", trackingId)
       .single();
     if (error || !shipment) throw new Error("Tracking ID not found");
-    const [{ data: origin }, { data: destination }, { data: events }] = await Promise.all([
-      sb.from("Address").select("city,country,lat,lng").eq("id", shipment.originId).single(),
-      sb.from("Address").select("city,country,lat,lng").eq("id", shipment.destinationId).single(),
+    const [{ data: origin }, { data: destination }, { data: events }, { data: documents }] = await Promise.all([
+      sb.from("Address").select("street,city,state,country,postalCode,lat,lng,label").eq("id", shipment.originId).single(),
+      sb.from("Address").select("street,city,state,country,postalCode,lat,lng,label").eq("id", shipment.destinationId).single(),
       sb.from("TrackingEvent").select("*").eq("shipmentId", shipment.id).order("timestamp", { ascending: true }),
+      sb.from("Document").select("id,name,url,mimeType,uploadedAt").eq("shipmentId", shipment.id).order("uploadedAt", { ascending: false }),
     ]);
     return {
       id: shipment.id,
       trackingId: shipment.trackingId,
       status: shipment.status,
+      description: shipment.description,
+      weightKg: shipment.weightKg,
+      volume: shipment.volume,
+      height: shipment.height,
+      length: shipment.length,
+      width: shipment.width,
+      shipmentType: shipment.shipmentType,
+      carrier: shipment.carrier,
+      paymentMethod: shipment.paymentMethod,
+      senderName: shipment.senderName,
+      senderPhone: shipment.senderPhone,
+      senderEmail: shipment.senderEmail,
+      receiverName: shipment.receiverName,
+      receiverPhone: shipment.receiverPhone,
+      receiverEmail: shipment.receiverEmail,
+      notes: shipment.notes,
+      createdAt: shipment.createdAt,
+      departureAt: shipment.departureAt,
       estimatedAt: shipment.estimatedAt,
+      deliveredAt: shipment.deliveredAt,
       origin,
       destination,
       events: events ?? [],
+      documents: documents ?? [],
     } as T;
   }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useMemo } from "react";
-import { MapPin, Navigation, Truck, CheckCircle2, Clock, X, Package } from "lucide-react";
+import { MapPin, Truck, CheckCircle2, Clock, X, Package, FileText, User, Calendar } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
@@ -19,14 +19,53 @@ type TrackEvent = {
   timestamp: string;
 };
 
+type TrackAddress = {
+  street: string;
+  city: string;
+  state: string | null;
+  country: string;
+  postalCode: string;
+  lat: number | null;
+  lng: number | null;
+  label: string | null;
+};
+
+type TrackDocument = {
+  id: string;
+  name: string;
+  url: string;
+  mimeType: string;
+  uploadedAt: string;
+};
+
 type TrackPayload = {
   id: string;
   trackingId: string;
   status: string;
+  description: string | null;
+  weightKg: number | null;
+  volume: number | null;
+  height: number | null;
+  length: number | null;
+  width: number | null;
+  shipmentType: string | null;
+  carrier: string | null;
+  paymentMethod: string | null;
+  senderName: string | null;
+  senderPhone: string | null;
+  senderEmail: string | null;
+  receiverName: string | null;
+  receiverPhone: string | null;
+  receiverEmail: string | null;
+  notes: string | null;
+  createdAt: string;
+  departureAt: string | null;
   estimatedAt: string | null;
-  origin: { city: string; country: string; lat: number | null; lng: number | null };
-  destination: { city: string; country: string; lat: number | null; lng: number | null };
+  deliveredAt: string | null;
+  origin: TrackAddress;
+  destination: TrackAddress;
   events: TrackEvent[];
+  documents: TrackDocument[];
 };
 
 type EventPoint = {
@@ -43,6 +82,81 @@ type MapPoint = {
   city: string | null;
   label: "previous" | "current";
 };
+
+function formatStatus(s: string) {
+  if (s === "PICK_UP" || s === "PICKED_UP") return "Picked Up";
+  if (s === "IN_TRANSIT") return "In Transit";
+  if (s === "ON_HOLD") return "On Hold";
+  if (s === "CITY_PERMIT") return "City Permit";
+  if (s === "INSURANCE") return "Insurance";
+  if (s === "CUSTOMS" || s === "CUSTOMS_CLEARANCE") return "Customs";
+  if (s === "OUT_FOR_DELIVERY") return "Out for Delivery";
+  if (s === "DELIVERED") return "Delivered";
+  if (s === "EXCEPTION_DELAYED") return "Exception / Delayed";
+  if (s === "CREATED") return "Created";
+  return s.replace(/_/g, " ");
+}
+
+function formatAddress(addr: TrackAddress) {
+  const parts = [
+    addr.street,
+    addr.city,
+    addr.state,
+    addr.postalCode,
+    addr.country,
+  ].filter(Boolean);
+  return parts.join(", ");
+}
+
+function statusProgress(status: string) {
+  const map: Record<string, number> = {
+    CREATED: 10,
+    PICK_UP: 25,
+    PICKED_UP: 25,
+    IN_TRANSIT: 50,
+    ON_HOLD: 55,
+    CITY_PERMIT: 58,
+    INSURANCE: 60,
+    CUSTOMS: 62,
+    CUSTOMS_CLEARANCE: 65,
+    OUT_FOR_DELIVERY: 85,
+    DELIVERED: 100,
+    EXCEPTION_DELAYED: 40,
+    FAILED: 0,
+    RETURNED: 0,
+  };
+  return map[status] ?? 35;
+}
+
+function formatDate(value: string | null, fallback = "—") {
+  if (!value) return fallback;
+  return new Date(value).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatDateTime(value: string | null, fallback = "—") {
+  if (!value) return fallback;
+  return new Date(value).toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function DetailRow({ label, value }: { label: string; value: string | number | null | undefined }) {
+  if (value == null || value === "" || value === "—") return null;
+  return (
+    <div>
+      <p className="text-[10px] font-black text-slate-400 uppercase">{label}</p>
+      <p className="text-sm font-bold text-slate-800 mt-1">{value}</p>
+    </div>
+  );
+}
 
 export function TrackLive({ trackingId }: { trackingId: string }) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -232,18 +346,7 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
         });
       }
 
-      const formatStatus = (s: string) => {
-        if (s === "PICK_UP" || s === "PICKED_UP") return "Picked Up";
-        if (s === "IN_TRANSIT") return "In Transit";
-        if (s === "ON_HOLD") return "On Hold";
-        if (s === "CITY_PERMIT") return "City Permit";
-        if (s === "INSURANCE") return "Insurance";
-        if (s === "CUSTOMS" || s === "CUSTOMS_CLEARANCE") return "Customs";
-        if (s === "OUT_FOR_DELIVERY") return "Out for Delivery";
-        if (s === "DELIVERED") return "Delivered";
-        if (s === "EXCEPTION_DELAYED") return "Exception / Delayed";
-        return s.replace(/_/g, " ");
-      };
+      const formatStatusLabel = formatStatus;
 
       // ── Place markers for every waypoint ──
       waypoints.forEach((wp) => {
@@ -273,7 +376,7 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
           .bindPopup(`<div style="font-family:sans-serif; min-width:130px;">
                         <div style="font-size:10px; font-weight:bold; color:#94a3b8; text-transform:uppercase; letter-spacing:1px;">${roleLabel}</div>
                         <div style="font-size:14px; font-weight:bold; color:#0f172a; margin-top:4px;">${wp.city}</div>
-                        ${wp.status && !wp.isOrigin && !wp.isDestination ? `<div style="font-size:11px; color:#64748b; margin-top:2px;">${formatStatus(wp.status)}</div>` : ""}
+                        ${wp.status && !wp.isOrigin && !wp.isDestination ? `<div style="font-size:11px; color:#64748b; margin-top:2px;">${formatStatusLabel(wp.status)}</div>` : ""}
                       </div>`);
       });
 
@@ -284,7 +387,7 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
           .setLatLng([latestEvent.lat, latestEvent.lng])
           .setContent(`<div style="padding:10px; min-width:140px;">
                           <div style="font-size:10px; font-weight:bold; color:#94a3b8; text-transform:uppercase; letter-spacing:1px;">Latest Update</div>
-                          <div style="font-size:14px; font-weight:bold; color:#0f172a; margin-top:2px;">${formatStatus(latestEvent.status)}</div>
+                          <div style="font-size:14px; font-weight:bold; color:#0f172a; margin-top:2px;">${formatStatusLabel(latestEvent.status)}</div>
                           ${latestEvent.city ? `<div style="font-size:11px; color:#64748b; margin-top:2px;">📍 ${latestEvent.city}</div>` : ""}
                        </div>`)
           .openOn(map);
@@ -479,6 +582,9 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
             <div>
                 <h1 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Track Shipment</h1>
                 <p className="text-2xl font-black text-white tracking-tighter">{data.trackingId}</p>
+                {data.description && (
+                  <p className="text-sm text-slate-400 mt-1 font-medium">{data.description}</p>
+                )}
             </div>
         </div>
         <div className="flex gap-8">
@@ -490,16 +596,7 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-teal"></span>
                     </span>
                     <p className="text-sm font-bold text-white uppercase">
-                        {data.status === "PICK_UP" || data.status === "PICKED_UP" ? "Picked Up" :
-                         data.status === "IN_TRANSIT" ? "In Transit" :
-                         data.status === "ON_HOLD" ? "On Hold" :
-                         data.status === "CITY_PERMIT" ? "City Permit" :
-                         data.status === "INSURANCE" ? "Insurance" :
-                         data.status === "CUSTOMS" || data.status === "CUSTOMS_CLEARANCE" ? "Customs" :
-                         data.status === "OUT_FOR_DELIVERY" ? "Out for Delivery" :
-                         data.status === "DELIVERED" ? "Delivered" :
-                         data.status === "EXCEPTION_DELAYED" ? "Exception / Delayed" :
-                         data.status.replace(/_/g, " ")}
+                        {formatStatus(data.status)}
                     </p>
                 </div>
             </div>
@@ -523,25 +620,25 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
                     <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
                         <div 
                             className="bg-green-500 h-full transition-all duration-1000" 
-                            style={{ width: data.status === "DELIVERED" ? "100%" : "65%" }}
+                            style={{ width: `${statusProgress(data.status)}%` }}
                         />
                     </div>
                     <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="flex flex-col">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ordered</span>
-                            <span className="text-xs font-bold text-slate-800 mt-1">Confirmed</span>
+                            <span className="text-xs font-bold text-slate-800 mt-1">{formatDate(data.createdAt, "Confirmed")}</span>
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Send [A]</span>
-                            <span className="text-xs font-bold text-slate-800 mt-1">{data.origin.city}</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Departure</span>
+                            <span className="text-xs font-bold text-slate-800 mt-1">{formatDate(data.departureAt, data.origin.city)}</span>
                         </div>
                         <div className="flex flex-col">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">In Transit</span>
-                            <span className="text-xs font-bold text-slate-800 mt-1">Processing</span>
+                            <span className="text-xs font-bold text-slate-800 mt-1">{formatStatus(data.status)}</span>
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Receiving</span>
-                            <span className="text-xs font-bold text-slate-800 mt-1">{data.destination.city}</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Est. Delivery</span>
+                            <span className="text-xs font-bold text-slate-800 mt-1">{formatDate(data.estimatedAt, data.destination.city)}</span>
                         </div>
                     </div>
                 </div>
@@ -561,16 +658,7 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
                             <div className="pb-8">
                                 <div className="flex items-center gap-3">
                                     <span className="text-xs font-black text-white uppercase tracking-widest">
-                                        {e.status === "PICK_UP" || e.status === "PICKED_UP" ? "Picked Up" :
-                                         e.status === "IN_TRANSIT" ? "In Transit" :
-                                         e.status === "ON_HOLD" ? "On Hold" :
-                                         e.status === "CITY_PERMIT" ? "City Permit" :
-                                         e.status === "INSURANCE" ? "Insurance" :
-                                         e.status === "CUSTOMS" || e.status === "CUSTOMS_CLEARANCE" ? "Customs" :
-                                         e.status === "OUT_FOR_DELIVERY" ? "Out for Delivery" :
-                                         e.status === "DELIVERED" ? "Delivered" :
-                                         e.status === "EXCEPTION_DELAYED" ? "Exception / Delayed" :
-                                         e.status.replace(/_/g, " ")}
+                                        {formatStatus(e.status)}
                                     </span>
                                     <span className="text-[10px] font-bold text-slate-500">{new Date(e.timestamp).toLocaleString()}</span>
                                 </div>
@@ -585,37 +673,116 @@ export function TrackLive({ trackingId }: { trackingId: string }) {
 
         <div className="lg:col-span-4 space-y-6">
             <div className="rounded-[2rem] bg-white p-8 shadow-xl">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6">Consignment Details</h3>
-                <div className="space-y-6">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase">From</p>
-                            <p className="text-sm font-bold text-slate-800 mt-1">{data.origin.city}</p>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-[10px] font-black text-slate-400 uppercase">To</p>
-                            <p className="text-sm font-bold text-slate-800 mt-1">{data.destination.city}</p>
-                        </div>
-                    </div>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
+                    <Package className="h-4 w-4" /> Consignment Details
+                </h3>
+                <div className="space-y-4">
+                    <DetailRow label="Description" value={data.description ?? undefined} />
+                    <DetailRow label="Service Type" value={data.shipmentType ?? undefined} />
+                    <DetailRow label="Carrier" value={data.carrier ?? undefined} />
+                    <DetailRow label="Payment Method" value={data.paymentMethod ?? undefined} />
                     <div className="h-px bg-slate-100" />
+                    <DetailRow label="Weight" value={data.weightKg != null ? `${data.weightKg} kg` : undefined} />
+                    <DetailRow label="Volume" value={data.volume != null ? `${data.volume} m³` : undefined} />
+                    {(data.length != null || data.width != null || data.height != null) && (
+                      <DetailRow
+                        label="Dimensions (L × W × H)"
+                        value={[data.length, data.width, data.height]
+                          .filter((v) => v != null)
+                          .map((v) => `${v} cm`)
+                          .join(" × ") || undefined}
+                      />
+                    )}
+                </div>
+            </div>
+
+            <div className="rounded-[2rem] bg-white p-8 shadow-xl">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
+                    <User className="h-4 w-4" /> Sender
+                </h3>
+                <div className="space-y-4">
+                    <DetailRow label="Name" value={data.senderName ?? undefined} />
+                    <DetailRow label="Phone" value={data.senderPhone ?? undefined} />
+                    <DetailRow label="Email" value={data.senderEmail ?? undefined} />
                     <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase">Weight</p>
-                        <p className="text-sm font-bold text-slate-800 mt-1">2.45 KG</p>
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase">Service Type</p>
-                        <p className="text-sm font-bold text-slate-800 mt-1">Global Express Saver</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase">Address</p>
+                        <p className="text-sm font-bold text-slate-800 mt-1">{formatAddress(data.origin)}</p>
                     </div>
                 </div>
             </div>
 
+            <div className="rounded-[2rem] bg-white p-8 shadow-xl">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
+                    <MapPin className="h-4 w-4" /> Receiver
+                </h3>
+                <div className="space-y-4">
+                    <DetailRow label="Name" value={data.receiverName ?? undefined} />
+                    <DetailRow label="Phone" value={data.receiverPhone ?? undefined} />
+                    <DetailRow label="Email" value={data.receiverEmail ?? undefined} />
+                    <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase">Address</p>
+                        <p className="text-sm font-bold text-slate-800 mt-1">{formatAddress(data.destination)}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="rounded-[2rem] bg-white p-8 shadow-xl">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
+                    <Calendar className="h-4 w-4" /> Shipment Timeline
+                </h3>
+                <div className="space-y-4">
+                    <DetailRow label="Created" value={formatDateTime(data.createdAt)} />
+                    <DetailRow label="Departure" value={formatDateTime(data.departureAt)} />
+                    <DetailRow label="Estimated Delivery" value={formatDateTime(data.estimatedAt)} />
+                    <DetailRow label="Delivered" value={formatDateTime(data.deliveredAt)} />
+                </div>
+            </div>
+
+            {data.notes && (
+              <div className="rounded-[2rem] bg-white p-8 shadow-xl">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Notes</h3>
+                  <p className="text-sm font-medium text-slate-700 leading-relaxed">{data.notes}</p>
+              </div>
+            )}
+
+            {data.documents.length > 0 && (
+              <div className="rounded-[2rem] bg-white p-8 shadow-xl">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
+                      <FileText className="h-4 w-4" /> Documents
+                  </h3>
+                  <div className="space-y-3">
+                      {data.documents.map((doc) => (
+                        <a
+                          key={doc.id}
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 px-4 py-3 hover:border-teal/30 hover:bg-slate-50 transition-colors"
+                        >
+                          <div>
+                            <p className="text-sm font-bold text-slate-800">{doc.name}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">
+                              {formatDate(doc.uploadedAt)}
+                            </p>
+                          </div>
+                          <FileText className="h-4 w-4 text-teal shrink-0" />
+                        </a>
+                      ))}
+                  </div>
+              </div>
+            )}
+
             <div className="rounded-[2rem] bg-teal p-8 shadow-xl shadow-teal/20 text-navy">
                 <div className="flex items-center gap-3 mb-4">
                     <CheckCircle2 className="h-6 w-6" />
-                    <p className="font-black uppercase tracking-tighter text-lg">Insured Shipment</p>
+                    <p className="font-black uppercase tracking-tighter text-lg">
+                      {data.shipmentType === "Insurance" || data.status === "INSURANCE" ? "Insured Shipment" : "NexShip Protection"}
+                    </p>
                 </div>
                 <p className="text-sm font-bold opacity-80 leading-relaxed">
-                    This shipment is covered by NexShip Premium Protection. Real-time monitoring active.
+                    {data.carrier
+                      ? `Handled by ${data.carrier}. Real-time monitoring active.`
+                      : "This shipment is covered by NexShip Premium Protection. Real-time monitoring active."}
                 </p>
             </div>
 
