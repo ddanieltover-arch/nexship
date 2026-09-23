@@ -155,6 +155,20 @@ export default function ServicesPage() {
                 </div>
                 <p className="mt-6 text-sm text-slate-400 leading-relaxed min-h-[60px]">
                   {s.desc}
+                  {s.title === "Ocean Freight" ? (
+                    <>
+                      {" "}
+                      Importers of Thai refined sugar can review{" "}
+                      <a
+                        href="https://uficoltd.com/insights/how-to-import-refined-sugar-from-thailand"
+                        className="text-teal hover:underline"
+                        rel="noopener noreferrer"
+                      >
+                        how to import refined sugar from Thailand
+                      </a>{" "}
+                      before booking FCL.
+                    </>
+                  ) : null}
                 </p>
                 <ul className="mt-6 space-y-2">
                   {s.features.map(f => (
