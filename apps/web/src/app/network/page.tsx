@@ -35,7 +35,15 @@ export default function NetworkPage() {
         <h1 className="text-4xl font-bold text-white md:text-5xl">Global Logistics Network</h1>
         <p className="mt-4 text-xl text-slate-400 max-w-3xl mx-auto">
           Connecting your business to the world through our verified network of 5,000+ logistics professionals 
-          distributed across all continents.
+          distributed across all continents. Rice exporters mapping{" "}
+          <a
+            href="https://tatglcoltd.com/en/markets"
+            className="text-teal hover:underline"
+            rel="noopener noreferrer"
+          >
+            Thai rice export markets
+          </a>{" "}
+          use these lanes for Asia and onward destinations.
         </p>
       </motion.div>
 

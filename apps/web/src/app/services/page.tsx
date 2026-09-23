@@ -169,6 +169,20 @@ export default function ServicesPage() {
                       before booking FCL.
                     </>
                   ) : null}
+                  {s.title === "Warehousing" ? (
+                    <>
+                      {" "}
+                      We also support{" "}
+                      <a
+                        href="https://betterfoodcoltd.com/about-us/"
+                        className="text-teal hover:underline"
+                        rel="noopener noreferrer"
+                      >
+                        wholesale meat with cold-chain from Thailand
+                      </a>
+                      .
+                    </>
+                  ) : null}
                 </p>
                 <ul className="mt-6 space-y-2">
                   {s.features.map(f => (
